@@ -1,0 +1,13 @@
+!imageupload!
+
+!gameimage!
+
+!gameinfo!
+
+!screenshots!
+
+[c][b][size=16]!releasename![/size][/b][/c]
+
+!nfo!
+
+!mediainfo!
