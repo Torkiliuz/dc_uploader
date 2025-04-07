@@ -227,11 +227,11 @@ if [ "$USE_DOMAIN" == "y" ] || [ "$USE_DOMAIN" == "Y" ]; then
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo "Adding automatic renewal and monthly certbot updates to /etc/crontab if they don't already exist"
         # Adds renewal to cron
-        if ! > /etc/crontab grep -q "certbot renew -q"; then
+        if ! cat /etc/crontab | grep -q "certbot renew -q"; then
             # At 12AM and 12PM every day. Will only renew certificates if eligible for automatic renewal
             echo "0 0,12 * * * root /opt/certbot/bin/python -c 'import random; import time; time.sleep(random.random() * 3600)' && sudo certbot renew -q" | tee -a /etc/crontab > /dev/null
         fi
-        if ! > /etc/crontab grep -q "/opt/certbot/bin/pip install --upgrade certbot"; then
+        if ! cat /etc/crontab | grep -q "/opt/certbot/bin/pip install --upgrade certbot"; then
             # At 8am on the first day of the month
 	        echo "0 8 1 * * root /opt/certbot/bin/pip install --upgrade certbot" | tee -a /etc/crontab > /dev/null
         fi
