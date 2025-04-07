@@ -50,13 +50,13 @@ Here are some important settings you can find in the config.ini. Do not change t
 
 start.sh will start the web server on the specified port in the install script. Starts in a detatched screen session named "dcc-uploader".
 
-shutdown.sh shutsdown the web server and ends the screen session.
+shutdown.sh shuts down the web server and ends the screen session.
 
 ### upload.sh usage for manual uploading via command line
 
 #### upload.sh (THIS IS TO-DO) "/full/path/to/torrent/directory" [OPTION]
 
-Lets say you have a directory you would like to upload:
+Let's say you have a directory you would like to upload:
 
 /home/torrentdata/this.is.a.nice.movie-grp
 
@@ -111,7 +111,7 @@ The alternative is to update config.ini's DATADIR every time you want to upload 
 
 A: This depends on how you set up the watch directory. By using a watch directory, the client adds the .torrent file to the client similar to a user adding a torrent.
 
-#### Q: I use discrete directories but I want to add it to a download-then-uploadToDCC automation pathway, how do I do that?
+#### Q: I use discrete directories, but I want to add it to a download-then-uploadToDCC automation pathway, how do I do that?
 
 A: Assuming you have created an upload directory as directed by the [discrete directories](https://github.com/FinHv/dc_uploader/new/main?filename=README.md#discrete-directories) section, just pass the torrent content path to upload.sh similar to how you would call upload.sh from the command line. The actual upload script or underlying upload.py do not require user intervention to begin with.
 
