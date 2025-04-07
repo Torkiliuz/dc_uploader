@@ -7,11 +7,15 @@ A simple python tool built for ubuntu to create and upload torrents. Debian is u
 - Checks for duplicates.
 - Creates torrents.
 - Automatically adds uploaded torrent to client by copying the created .torrent file to client watch directory.
-- Takes screenshots and uploads to image host.
+- Takes screenshots with movie thumbnailer and uploads to image host.
+  - Works on rar'd content as well. Only done when no sample is found.
 - Added the mediainfo to the uploaded torrent.
-- Automatically enable HTTPS with either certbot (installed via pip) or a self signed certificate.
+- Automatically enable HTTPS with either certbot (installed via pip) or a self-signed certificate.
     - Support for cloudflare DNS challenge via cloudflare API token.
     - Sets up automatic certbot cert renewal and certbot updates, if not already existing.
+- Gets video game information from IGDB (API key required).
+- Gets movie/show information from TMDB (API key required).
+- Automatically edit .torrent from source content tracker instead of generating new .torrent with torf.
 
 ## Install
 
@@ -37,18 +41,24 @@ A simple python tool built for ubuntu to create and upload torrents. Debian is u
 Here are some important settings you can find in the config.ini. Do not change the headers or location of the settings.
 
 - CAPTCHA_PASSKEY: This is your passkey for the site.
-- ETORFPATH: directory where source .torrent files from other torrent sites are downloaded to. If you are rehashing new .torrent files when you upload, this directory is largely irrelevant and can be set to a dummy directory.
+- ETORFPATH: directory where .torrent files from source torrent site are downloaded to. If you are rehashing new .torrent files when you upload (e.g. EDIT_TORRENT is set to false), this directory is largely irrelevant and can be set to a dummy directory.
     - If EDIT_TORRENT is set to true, it will edit the torrent instead of creating a new one, which saves time.
-- ANNOUNCEURL: Your personal announce URL
+- ANNOUNCEURL: Your personal announce URL.
 - WATCHFOLDER: Path to the directory where .torrent file for the uploaded torrent is placed for the client to import, e.g., /uploaders/torrentwatch.
-- DATADIR: Path to where the downloaded torrent data is stored, e.g., /uploaders/complete. If you like to sort your downloads into tracker/category/etc specific directory (e.g. due to using an *arr stack), see DISCRETE_FOLDER and [below](https://github.com/FinHv/dc_uploader/new/main?filename=README.md#discrete-directories).
+- DATADIR: Path to where the downloaded torrent data is stored, e.g., /uploaders/complete. If you like to sort your downloads into tracker/category/etc specific directory (e.g. due to using an *arr stack), see [below](https://github.com/FinHv/dc_uploader/new/main?filename=README.md#discrete-directories).
 - FILTERS: Should not be changed. Default is files/filters.json.
 - UPLOADLOG: Log file for uploads, default is files/upload.log.
 - COOKIE_PATH: Temporary file for cookies, default is files/cookies.tmp.
 
+TMDB:
+- APIKEY: Used for TMDB lookups. See [here](https://developer.themoviedb.org/docs/getting-started#:~:text=To%20register%20for%20an%20API,to%20our%20terms%20of%20use.) on how to get an API key.
+
+IGDB:
+- CLIENT_ID and CLIENT_SECRET: Used for IGDB integration. See [here](https://api-docs.igdb.com/#getting-started) on how to generate a client ID and secret.
+
 ## Usage
 
-start.sh will start the web server on the specified port in the install script. Starts in a detatched screen session named "dcc-uploader".
+start.sh will start the web server on the specified port specified during install. Starts in a detatched screen session named "dcc-uploader".
 
 shutdown.sh shuts down the web server and ends the screen session.
 
