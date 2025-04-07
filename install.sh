@@ -135,7 +135,8 @@ echo "Installing Python packages in $VENV_PATH virtual environment..."
 "$VENV_PATH/bin/pip3" install torf-cli
 "$VENV_PATH/bin/pip3" install gevent
 
-
+# Write virtual env path to venv.path
+echo "$VENV_PATH" | tee venv.path > /dev/null
 # Ensure start and shutdown scripts are executable
 chmod +x start.sh
 chmod +x shutdown.sh
