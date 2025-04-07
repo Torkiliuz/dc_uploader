@@ -71,11 +71,11 @@ You would run: upload.sh "/home/torrentdata/tracker1/this.is.a.nice.movie-grp"
 By default, the program assumes that the data to be uploaded already exists in DATADIR. See optional arguments if you wish to modify this behavior.
 
 #### Optional arguments:
--h, --help: Prints help
+-h, --help: Prints help. Called via upload.sh -h or upload.sh --help.
 
 Following arguments are primarily used when user is using discrete directories.
 
--l, --link: Hardlinks provided directory to DATADIR. If hardlink fails, fallsback to symlink.
+-l, --link: Hardlinks provided directory to DATADIR. If hardlink fails, fallback to symlink.
 
 -c, --copy: Copies provided directory to DATADIR
 
