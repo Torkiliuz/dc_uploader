@@ -45,7 +45,7 @@ Here are some important settings you can find in the config.ini. Do not change t
     - If EDIT_TORRENT is set to true, it will edit the torrent instead of creating a new one, which saves time.
 - ANNOUNCEURL: Your personal announce URL.
 - WATCHFOLDER: Path to the directory where .torrent file for the uploaded torrent is placed for the client to import, e.g., /uploaders/torrentwatch.
-- DATADIR: Path to where the downloaded torrent data is stored, e.g., /uploaders/complete. If you like to sort your downloads into tracker/category/etc specific directory (e.g. due to using an *arr stack), see DISCRETE_FOLDER and [below](https://github.com/FinHv/dc_uploader/new/main?filename=README.md#discrete-directories).
+- DATADIR: Path to where the downloaded torrent data is stored, e.g., /uploaders/complete. If you like to sort your downloads into tracker/category/etc specific directory (e.g. due to using an *arr stack), see [below](https://github.com/FinHv/dc_uploader/new/main?filename=README.md#discrete-directories).
 - FILTERS: Should not be changed. Default is files/filters.json.
 - UPLOADLOG: Log file for uploads, default is files/upload.log.
 - COOKIE_PATH: Temporary file for cookies, default is files/cookies.tmp.
