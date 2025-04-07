@@ -61,10 +61,6 @@ sed -i "s/^password = .*/password = $PASSWORD/" config.ini
 sed -i "s/^port = .*/port = $PORT/" config.ini
 sed -i "s/^hostname = .*/hostname = $SERVER_NAME/" config.ini
 
-# Install software-properties-common without user interaction
-apt update
-apt-get install software-properties-common -y
-
 # Add the PPA repository without requiring confirmation
 add-apt-repository -y ppa:wahibre/mtn
 
@@ -73,7 +69,7 @@ apt update
 
 # Install mtn, mediainfo, libfuse-dev, and unrar in one go
 echo "Installing required tools and their dependencies..."
-apt-get install build-essential mtn mediainfo libfuse-dev unrar screen -y
+apt-get install build-essential mtn mediainfo libfuse-dev unrar screen software-properties-common -y
 
 # Install rar2fs
 if [[ ! -f /usr/local/bin/rar2fs ]]; then
@@ -136,11 +132,8 @@ fi
 
 # Install Python packages
 echo "Installing Python packages in $VENV_PATH virtual environment..."
-"$VENV_PATH/bin/pip3" install requests rfr
-"$VENV_PATH/bin/pip3" install flask
-"$VENV_PATH/bin/pip3" install watchdog
-"$VENV_PATH/bin/pip3" install torf-cli
-"$VENV_PATH/bin/pip3" install gevent
+
+"$VENV_PATH/bin/pip3" install -r requirements.txt
 
 # Write virtual env path to venv.path
 echo "$VENV_PATH" | tee venv.path > /dev/null
