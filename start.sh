@@ -1,6 +1,6 @@
 #!/bin/bash
 if [ "$EUID" -ne 0 ]; then
-    echo "Please run as root or with sudo"
+    echo "Please run as root or with sudo" >&2
     exit 1
 fi
 

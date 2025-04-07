@@ -8,7 +8,14 @@ command_exists() {
 }
 
 if [ "$EUID" -ne 0 ]; then
-    echo "Please run as root or with sudo"
+    echo "Please run as root or with sudo" >&2
+    exit 1
+fi
+
+. /etc/os-release
+
+if [ "$ID" != "ubuntu" ]; then
+    echo "This program was only built for ubuntu, aborting install" >&2
     exit 1
 fi
 
@@ -32,7 +39,7 @@ if [ "$USE_DOMAIN" == "y" ] || [ "$USE_DOMAIN" == "Y" ]; then
     echo "Info: If Let's Encrypt certificate for domain already exists, it will be imported instead of creating a new certificate"
     read -p "Enter the fully qualified domain name for the server for Let's Encrypt : " SERVER_NAME
     if [ -z "$SERVER_NAME" ] || [[ "$SERVER_NAME" == *" "* ]]; then
-        echo "You must provide a valid domain name with no spaces for Let's Encrypt."
+        echo "You must provide a valid domain name with no spaces for Let's Encrypt." >&2
         exit 1
     fi
 else
@@ -112,13 +119,13 @@ echo "Creating python virtaul environment..."
 if [ -d "$VENV_PATH" ]; then
     if ! [ -f "$VENV_PATH/bin/python3" ]; then
         # Existing directory is NOT a virtual environment, aborting
-        echo "Supplied virtual environment path conflicts with existing directory that is not a python virtual environment, please select a different path for the virtual enviornment"
+        echo "Supplied virtual environment path conflicts with existing directory that is not a python virtual environment, please select a different path for the virtual enviornment" >&2
         exit 1
     fi
     read -p "Warning: virtual environment already exists, continue? [y/n] : " -r
     echo # Move to new line for cleaner look
     if ! [[ $REPLY =~ ^[Yy]$ ]]; then
-        echo "Aborting install"
+        echo "Aborting install" >&2
         exit 1
     fi
 else
@@ -148,7 +155,7 @@ echo "Initializing databases..."
 if python3 utils/database_utils.py initialize_all_databases; then
     echo "Databases created successfully."
 else
-    echo "Error occurred while creating databases."
+    echo "Error occurred while creating databases." >&2
     exit 1
 fi
 
@@ -159,7 +166,7 @@ if [ "$USE_DOMAIN" == "y" ] || [ "$USE_DOMAIN" == "Y" ]; then
         read -p "Ready to uninstall any certbot instances installed from apt? [y/n] : " -r
         echo
         if ! [[ $REPLY =~ ^[Yy]$ ]]; then
-            echo "User did not want to uninstall existing certbot, aborting"
+            echo "User did not want to uninstall existing certbot, aborting" >&2
             exit 1
         fi
         apt-get remove -y certbot
@@ -189,7 +196,7 @@ if [ "$USE_DOMAIN" == "y" ] || [ "$USE_DOMAIN" == "Y" ]; then
             else
                 read -p "Cloudflare API token : " CF_TOKEN
                 if [ -z "$CF_TOKEN" ]; then
-                    echo "No Cloudflare token supplied, cannot continue"
+                    echo "No Cloudflare token supplied, cannot continue" >&2
                     exit 1
                 fi
                 mkdir /root/.secrets/
