@@ -54,7 +54,7 @@ shutdown.sh shuts down the web server and ends the screen session.
 
 ### upload.sh usage for manual uploading via command line
 
-#### upload.sh (THIS IS TO-DO) "/full/path/to/torrent/directory" [OPTION]
+#### upload.sh "/full/path/to/torrent/directory" [OPTION]
 
 Let's say you have a directory you would like to upload:
 
@@ -71,7 +71,9 @@ You would run: upload.sh "/home/torrentdata/tracker1/this.is.a.nice.movie-grp"
 By default, the program assumes that the data to be uploaded already exists in DATADIR. See optional arguments if you wish to modify this behavior.
 
 #### Optional arguments:
-Primarily used when user is using discrete directories.
+-h, --help: Prints help
+
+Following arguments are primarily used when user is using discrete directories.
 
 -l, --link: Hardlinks provided directory to DATADIR. If hardlink fails, fallsback to symlink.
 
