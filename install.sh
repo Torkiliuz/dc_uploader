@@ -69,33 +69,43 @@ apt update
 
 # Install mtn, mediainfo, libfuse-dev, and unrar in one go
 echo "Installing required tools and their dependencies..."
-apt-get install build-essential mtn mediainfo libfuse-dev unrar screen software-properties-common -y
+apt-get install build-essential mtn mediainfo libfuse-dev screen software-properties-common autoconf -y
 
 # Install rar2fs
 if [[ ! -f /usr/local/bin/rar2fs ]]; then
     echo "Installing rar2fs..."
-    UNRARVER="6.0.7"
-    RAR2FSVER="1.29.3"
+    UNRAR_VER="7.1.6"
+    RAR2FS_VER="1.29.7"
     WORKDIR="/tmp/rar2fs_installation"
 
+    # Download rar2fs
     mkdir -p $WORKDIR
     cd $WORKDIR
+    wget https://github.com/hasse69/rar2fs/archive/refs/tags/v$RAR2FS_VER.tar.gz
+    tar zxvf v$RAR2FS_VER.tar.gz
+    cd rar2fs-$RAR2FS_VER
 
-    wget http://www.rarlab.com/rar/unrarsrc-$UNRARVER.tar.gz
-    tar zxvf unrarsrc-$UNRARVER.tar.gz
+    # Download unrar inside rar2fs directory
+    wget http://www.rarlab.com/rar/unrarsrc-$UNRAR_VER.tar.gz
+    tar zxvf unrarsrc-$UNRAR_VER.tar.gz
     cd unrar
-    make && make install
-    make lib && make install-lib
+
+    # Install unrar libraries, that's all rar2fs needs
+    echo "Compiling unrar..."
+    make --silent lib && echo "Unrar library compiled, installing..."
+    make install-lib && echo "Unrar library installed successfully"
+
+    # Back to rar2fs root directory
     cd ..
 
-    wget https://github.com/hasse69/rar2fs/releases/download/v$RAR2FSVER/rar2fs-$RAR2FSVER.tar.gz
-    tar zxvf rar2fs-$RAR2FSVER.tar.gz
-    cd rar2fs-$RAR2FSVER
-    ./configure --with-unrar=../unrar --with-unrar-lib=/usr/lib/
-    make && make install
+    # Install rar2fs
+    echo "Compiling rar2fs..."
+    autoreconf -f -i
+    ./configure && make --silent && echo "rar2fs compiled successfully, installing..."
+    make install && echo "rar2fs installed successfully"
 
     sed -i 's/#user_allow_other/user_allow_other/g' /etc/fuse.conf
-    cd ~
+    cd "$SCRIPT_PATH"
     rm -rf $WORKDIR
 fi
 
