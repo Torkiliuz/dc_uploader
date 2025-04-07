@@ -1,7 +1,6 @@
 import os
 import shlex
-import subprocess
-from shutil import ReadError
+
 import requests
 from pathlib import Path
 from utils.logging_utils import log_to_file
@@ -61,7 +60,6 @@ def create_torrent(directory, temp_dir):
     """Create a torrent file from the given directory using torf-cli."""
     try:
         edit_torrent = config.getboolean('Torrent', 'EDIT_TORRENT')
-        etorf = config.get('Torrent', 'ETORF')
         ecomment = config.get('Torrent', 'ECOMMENT')
         esource = config.get('Torrent', 'ESOURCE')
         creator = config.get('Torrent', 'CREATOR')
@@ -118,25 +116,34 @@ def create_torrent(directory, temp_dir):
             reused_torrent.source = f"{shlex.quote(esource)}"
             reused_torrent.private = True
             Torrent.copy(reused_torrent).write(f"{shlex.quote(str(torrent_file))}", overwrite=True)
-
     else:
-        new_torrent = Torrent(f"{shlex.quote(str(directory_path))}",
+        print(f"\033[36mCreate torrent file.. {torrent_file}\n\033[0m")
+        new_torrent = Torrent(path=f"{shlex.quote(str(directory_path))}",
+                              name=f"{directory_path.name}",
                               trackers=[f"{shlex.quote(announceurl)}"],
                               source=f"{shlex.quote(esource)}",
                               created_by=f"{shlex.quote(creator)}",
                               comment=f"{shlex.quote(ecomment)}",
                               randomize_infohash=True,
                               private=True,
-                              piece_size_max=piece_size,
-                              )
+                              piece_size_max=piece_size * 1048576)
 
-        new_torrent.validate()
-
-        print(f"\033[36mCreate torrent file.. {torrent_file}\n\033[0m")
         try:
+            # Temporarily store the CustomOutput version of stdout
             if new_torrent.generate(callback=torf_cb, interval=5):
                 new_torrent.write(f"{shlex.quote(str(torrent_file))}", overwrite=True)
-                new_torrent.verify_filesize(directory_path)
+                log_to_file(temp_dir_path / 'create_torrent_output.log',
+                            "New torrent successfully generated. Validating now")
+                print("New torrent successfully generated. Validating now")
+                try:
+                    Torrent.read(f"{shlex.quote(str(torrent_file))}").validate()
+                    new_torrent.verify_filesize(directory_path)
+                    log_to_file(temp_dir_path / 'create_torrent_output.log', "Torrent file successfully validated")
+                    print("Torrent file successfully validated")
+                except Exception as e:
+                    log_to_file(temp_dir_path / 'create_torrent_error.log', str(e))
+                    print(f"Error, generated torrent is not valid: {e}")
+                    return None, None
             else:
                 log_to_file(temp_dir_path / 'create_torrent_error.log', f"Failed to hash all pieces during torrent generation")
                 print(f"Failed to hash all pieces during torrent generation")
@@ -145,7 +152,6 @@ def create_torrent(directory, temp_dir):
                 log_to_file(temp_dir_path / 'create_torrent_error.log', str(e))
                 print(f"Error generating torrent: {e}")
                 return None, None
-    
     try:
         print(f"\033[92mTorrent to be uploaded has been created: {torrent_file}\n\033[0m")
         return str(torrent_file), piece_size  # Return the path to the torrent file as a string
@@ -153,6 +159,16 @@ def create_torrent(directory, temp_dir):
         log_to_file(temp_dir_path / 'create_torrent_error.log', str(e))
         print(f"Error creating torrent: {e}")
         return None, None
+
+def calculate_size(directory):
+    """Calculate the directory size."""
+    total_size = sum(
+        os.path.getsize(os.path.join(root, file))
+        for root, _, files in os.walk(directory)
+        for file in files
+    )
+
+    return total_size
 
 def calculate_piece_size(directory):
     """Calculate the appropriate piece size for the torrent based on directory size."""

@@ -78,6 +78,10 @@ class CustomOutput:
         """Flush the original stdout."""
         self.original_stdout.flush()
 
+    def isatty(self):
+        """Return whether the original stdout is a TTY."""
+        return self.original_stdout.isatty()
+
 # Replace sys.stdout with CustomOutput
 sys.stdout = CustomOutput(sys.stdout)
 
