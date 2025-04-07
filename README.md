@@ -107,23 +107,23 @@ The alternative is to update config.ini's DATADIR every time you want to upload 
 
 ## FAQ
 
-### Q: After my torrent is uploaded, where does the actually torrent expect the data to be?
+#### Q: After my torrent is uploaded, where does the actually torrent expect the data to be?
 
 A: This depends on how you set up the watch directory. By using a watch directory, the client adds the .torrent file to the client similar to a user adding a torrent.
 
-### Q: I use discrete directories but I want to add it to a download-then-uploadToDCC automation pathway, how do I do that?
+#### Q: I use discrete directories but I want to add it to a download-then-uploadToDCC automation pathway, how do I do that?
 
 A: Assuming you have created an upload directory as directed by the [discrete directories](https://github.com/FinHv/dc_uploader/new/main?filename=README.md#discrete-directories) section, just pass the torrent content path to upload.sh similar to how you would call upload.sh from the command line. The actual upload script or underlying upload.py do not require user intervention to begin with.
 
-### Q: Can I pass a file to the script rather than a directory?
+#### Q: Can I pass a file to the script rather than a directory?
 
 Yes, there's checks for that, but it could introduce bugs. The tool is designed primarily with the expectation that the user will pass the script the directory holding the data to be uploaded as a torrent, unlike [Audionut's Upload Assistant](https://github.com/Audionut/Upload-Assistant) which can take either directories or files.
 
-### Q: What happens if I pass the script a file instead of a directory/directory?
+#### Q: What happens if I pass the script a file instead of a directory/directory?
 
 A: A polar bear mauls you. Assuming you survive, for discrete directory users, the script will create a directory in DATADIR with the file name as the directory name, minus the file extension, and copy/hardlink/symlink the file to that directory. For non-discrete directory users,
 
-### Q: What happens if I pass the script the path of something already in DATADIR?
+#### Q: What happens if I pass the script the path of something already in DATADIR?
 
 A: **This is what folks not using discrete directory are doing anyways, so this answer is mostly relevant to discrete directory users.** If you pass it a directory, it'll proceed as normal and not create/copy anything. The script will detect that the directory already exists and be happy. 
 
@@ -131,10 +131,10 @@ If you pass it a *file* that exists in DATADIR, it will create a directory named
 
 You should avoid passing files that exist in DATADIR to begin with as it may introduce bugs and will result in a duplicate file, and instead simply rely on --l, --c, or --m instead. That said, the duplicate file will not take up any additional space, but again, avoid.
 
-### Q: Why hardlink/symlink if file already exists in DATADIR? Why not move it?
+#### Q: Why hardlink/symlink if file already exists in DATADIR? Why not move it?
 
 A: The data isn't moved because it might be used by another torrent.
 
-### Q: When does the tool fallback to symlinking?
+#### Q: When does the tool fallback to symlinking?
 
 The primary limitation of hardlinking is that the source and intended destination must be on the same filesystem - e.g. it can't hardlink from one harddrive to another, from one harddrive to a SMB/NFS mount, etc. When the tool detects that a hardlink can't be done, it tries again using symlinks.
