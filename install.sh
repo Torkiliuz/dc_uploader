@@ -135,8 +135,7 @@ echo "Installing Python packages in $VENV_PATH virtual environment..."
 "$VENV_PATH/bin/pip3" install torf-cli
 "$VENV_PATH/bin/pip3" install gevent
 
-# Overwrite contents of start script with start command
-/usr/bin/printf "#!/bin/bash\nVENV_PATH=$VENV_PATH\n\nSCRIPT_PATH=\$( cd \"\$(dirname \"\${BASH_SOURCE[0]}\")\" ; pwd -P )\n\ncd \"\$SCRIPT_PATH\"\n\nscreen -dmS dcc-uploader \"\$VENV_PATH/bin/python3\" app.py" | tee start.sh > /dev/null
+
 # Ensure start and shutdown scripts are executable
 chmod +x start.sh
 chmod +x shutdown.sh
@@ -144,9 +143,8 @@ chmod +x shutdown.sh
 # Call the Python script with the function name as an argument
 echo "Initializing databases..."
 # Does not need virtual environment since it is touching stuff outside of virtual environment
-python3 utils/database_utils.py initialize_all_databases
 
-if [ $? -eq 0 ]; then
+if python3 utils/database_utils.py initialize_all_databases; then
     echo "Databases created successfully."
 else
     echo "Error occurred while creating databases."
@@ -177,7 +175,7 @@ if [ "$USE_DOMAIN" == "y" ] || [ "$USE_DOMAIN" == "Y" ]; then
     echo "Configuring SSL with Let's Encrypt..."
     SSL_CERT_PATH="/etc/letsencrypt/live/$SERVER_NAME/fullchain.pem"
     SSL_KEY_PATH="/etc/letsencrypt/live/$SERVER_NAME/privkey.pem"
-    if [ -f $SSL_CERT_PATH ] && [ -f $SSL_KEY_PATH ]; then
+    if [ -f "$SSL_CERT_PATH" ] && [ -f "$SSL_KEY_PATH" ]; then
         echo "Certificates already exist, existing certificates will be imported"
         echo "Calling certbot renew to ensure existing certificates are not expired"
         certbot renew -q
@@ -218,11 +216,11 @@ if [ "$USE_DOMAIN" == "y" ] || [ "$USE_DOMAIN" == "Y" ]; then
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo "Adding automatic renewal and monthly certbot updates to /etc/crontab if they don't already exist"
         # Adds renewal to cron
-        if ! cat /etc/crontab | grep -q "certbot renew -q"; then
+        if ! > /etc/crontab grep -q "certbot renew -q"; then
             # At 12AM and 12PM every day. Will only renew certificates if eligible for automatic renewal
             echo "0 0,12 * * * root /opt/certbot/bin/python -c 'import random; import time; time.sleep(random.random() * 3600)' && sudo certbot renew -q" | tee -a /etc/crontab > /dev/null
         fi
-        if ! cat /etc/crontab | grep -q "/opt/certbot/bin/pip install --upgrade certbot"; then
+        if ! > /etc/crontab grep -q "/opt/certbot/bin/pip install --upgrade certbot"; then
             # At 8am on the first day of the month
 	        echo "0 8 1 * * root /opt/certbot/bin/pip install --upgrade certbot" | tee -a /etc/crontab > /dev/null
         fi
