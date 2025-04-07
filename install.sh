@@ -155,7 +155,7 @@ chmod +x shutdown.sh
 echo "Initializing databases..."
 # Does not need virtual environment since it is touching stuff outside of virtual environment
 
-if python3 utils/database_utils.py initialize_all_databases; then
+if "$VENV_PATH/bin/python3" utils/database_utils.py initialize_all_databases; then
     echo "Databases created successfully."
 else
     echo "Error occurred while creating databases." >&2
