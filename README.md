@@ -107,7 +107,7 @@ The alternative is to update config.ini's DATADIR every time you want to upload 
 
 ## FAQ
 
-#### Q: After my torrent is uploaded, where does the actually torrent expect the data to be?
+#### Q: After my torrent is uploaded, where does the actual torrent in the client expect the data to be?
 
 A: This depends on how you set up the watch directory. By using a watch directory, the client adds the .torrent file to the client similar to a user adding a torrent.
 
