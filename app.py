@@ -15,7 +15,6 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import time
 from collections import OrderedDict
-from typing import IO
 
 
 DATABASE = 'data/uploads.db'
