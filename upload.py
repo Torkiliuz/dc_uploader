@@ -148,6 +148,7 @@ def main():
 
     if len(sys.argv) > 1:
         directory_name = sys.argv[1]
+        update_upload_status(name=directory_name, new_status='initializing')
     else:
         log("No directory name provided.", log_file_path)
         return
@@ -166,22 +167,12 @@ def main():
     update_status(directory, 'uploading')
 
     # Initialize upload details dictionary
-    upload_details = {
-        "name": directory_name,
-        "path": str(directory),
-        "size": None,
-        "category": None,
-        "piece_size": None,
-        "piece_size_bytes": None,
-        "etor_started": None,
-        "torrent_file": None,
-        "etor_completed": None,
-        "nfo": None
-    }
+    upload_details = {"name": directory_name, "path": str(directory), "size": None, "category": None,
+                      "piece_size": None, "piece_size_bytes": None, "etor_started": None, "torrent_file": None,
+                      "etor_completed": None, "nfo": None, 'size': f"{calculate_directory_size(directory)} MB",
+                      'nfo': find_nfo_file(directory) or "NFO file not found"}
 
     # Calculate directory size and check for NFO file
-    upload_details['size'] = f"{calculate_directory_size(directory)} MB"
-    upload_details['nfo'] = find_nfo_file(directory) or "NFO file not found"
 
     # Check if settings are enabled 
     screenshots_enabled = config.getboolean('Settings', 'SCREENSHOTS')
@@ -291,7 +282,8 @@ def main():
         upload_details['etor_completed'] = time.strftime('%a %b %d %H:%M:%S %Z %Y')
 
     except Exception as e:
-        log(f"Error creating torrent: {str(e)}", log_file_path)        
+        log(f"Error creating torrent: {str(e)}", log_file_path)
+        update_upload_status(name=directory_name, new_status='failed')
         return
 
     print(ascii_art_header("Category"))
