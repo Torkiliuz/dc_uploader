@@ -26,7 +26,7 @@ def generate_screenshots(directory, category_id):
     mounts_dir.mkdir(parents=True, exist_ok=True)
 
     # Prepare the command options
-    command_opts = f"{mtn_width} {mtn_postby} {mtn_setting} -f {mtn_fontfile}"
+    command_opts = f"{mtn_width} {mtn_postby} {mtn_setting} -f {mtn_fontfile} -h 150 -q"
 
     # Check if screenshots are enabled and category is in the configured list
     screenshots_enabled = config.getboolean('Settings', 'SCREENSHOTS')
@@ -136,6 +136,7 @@ def mtn_exec(command_opts, media_file, mtn_path, screenshots_dir):
     # Check if any screenshot files are created
     screenshot_files = list(screenshots_dir.glob(f"{media_file.stem}*.jpg"))
     if screenshot_files:
+        print(f"Successfully generated screenshots")
         print(f"Generated screenshots: {screenshot_files}")
         return True
     else:
