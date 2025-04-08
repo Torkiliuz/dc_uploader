@@ -28,14 +28,12 @@ os.environ['PYTHONPYCACHEPREFIX'] = 'tmp/'
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 
-
 # Initialize logging to output to the console
 logging.basicConfig(
     level=logging.DEBUG,  # Set logging level to DEBUG to capture all messages
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[logging.StreamHandler()]  # Output logs to console (stdout)
 )
-
 
 # Custom ConfigParser to preserve case sensitivity
 class CaseConfigParser(configparser.ConfigParser):
@@ -46,18 +44,14 @@ class CaseConfigParser(configparser.ConfigParser):
 config = CaseConfigParser()
 config.read('config.ini')
 
-
 # Read authentication details from config
 auth_user = config['AUTH'].get('user', 'admin')
 auth_password = config['AUTH'].get('password', 'password')
 app_port = int(config['AUTH'].get('port', '5000'))
 app_host = config['AUTH'].get('hostname', 'localhost')
 
-
 # Load the path to the JSON file from config.ini
 json_file_path = config['Paths'].get('FILTERS', 'filters.json')
-
-
 
 # Login required decorator
 def login_required(f):
@@ -67,8 +61,6 @@ def login_required(f):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
-
-
 
 # Initialize database only if it doesn't exist
 def init_db():
@@ -94,9 +86,6 @@ def init_db():
         logging.info('Database already exists. No need to reload all directories.')
         return False
 
-
-
-
 #################################### CLEANUP FUNCTION #####################################################
 
 # Directory cleanup function to compare database with actual root directory
@@ -106,9 +95,7 @@ def cleanup_orphaned_directories():
         if not data_dir:
             logging.error('DATADIR is not set in the configuration file.')
             return
-
         logging.info("Starting cleanup of orphaned directories...")
-
         # Connect to the SQLite database
         conn = sqlite3.connect(DIRDATABASE)
         c = conn.cursor()
@@ -122,24 +109,25 @@ def cleanup_orphaned_directories():
 
         # Compare the two lists and find directories in the database that don't exist in the root folder
         orphaned_directories = set(db_directories) - set(actual_directories)
+        if len(orphaned_directories) == 0:
+            logging.info(f"No orphaned directories found.")
+        else:
+            # If orphaned directories are found, delete them from the database
+            for directory in orphaned_directories:
+                logging.info(f"Removing orphaned directory: {directory} from database")
+                c.execute('DELETE FROM directories WHERE name = ?', (directory,))
 
-        # If orphaned directories are found, delete them from the database
-        for directory in orphaned_directories:
-            logging.info(f"Removing orphaned directory: {directory} from database")
-            c.execute('DELETE FROM directories WHERE name = ?', (directory,))
+                # Commit changes and close the database connection
+                conn.commit()
 
-        # Commit changes and close the database connection
-        conn.commit()
         conn.close()
-
         logging.info("Cleanup of orphaned directories completed.")
 
         # Sleep for 10 minutes before running the check again
-        time.sleep(600)  # 600 seconds = 10 minutes
+        time.sleep(5)  # 600 seconds = 10 minutes
 
-
-# Function to start the cleanup thread
-def start_cleanup_task():
+# Function to start the cleanup daemon
+def initiate_cleanup_daemon():
     cleanup_thread = threading.Thread(target=cleanup_orphaned_directories, daemon=True)
     cleanup_thread.start()
 
@@ -738,7 +726,7 @@ if __name__ == '__main__':
         observer = start_directory_watcher(datadir)
 
     # Start the cleanup task to remove orphaned directories from the database
-    start_cleanup_task()
+    initiate_cleanup_daemon()
 
     # Path to your SSL certificate and key
     ssl_cert_path = '/etc/ssl/certs/selfsigned_cert.pem'
