@@ -304,5 +304,3 @@ pyrightconfig.json
 # End of https://www.toptal.com/developers/gitignore/api/linux,pycharm,python
 /venv.path
 /data/
-/.devcontainer/
-/.devcontainer/devcontainer.json
