@@ -149,4 +149,8 @@ A: The data isn't moved because it might be used by another torrent.
 
 #### Q: When does the tool fallback to symlinking?
 
-The primary limitation of hardlinking is that the source and intended destination must be on the same filesystem - e.g. it can't hardlink from one harddrive to another, from one harddrive to a SMB/NFS mount, etc. When the tool detects that a hardlink can't be done, it tries again using symlinks.
+A: The primary limitation of hardlinking is that the source and intended destination must be on the same filesystem - e.g. it can't hardlink from one harddrive to another, from one harddrive to a SMB/NFS mount, etc. When the tool detects that a hardlink can't be done, it tries again using symlinks.
+
+### Q: Can I use this tool on windows?
+
+A: Maybe, but most likely not. While built on python, it does rely quite a bit on assumptions specific to Linux. The bash scripts certainly will not work. Instead, look into [WSL](https://learn.microsoft.com/en-us/windows/wsl/install). Once WSL is running, just mount your torrent parent folder to the WSL environment through /etc/fstab and you should be fine. Treat it like a second computer.
