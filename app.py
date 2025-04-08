@@ -15,6 +15,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import time
 from collections import OrderedDict
+from typing import IO
 
 
 DATABASE = 'data/uploads.db'
@@ -102,8 +103,8 @@ def init_db():
 # Directory cleanup function to compare database with actual root directory
 def cleanup_orphaned_directories():
     while True:
-        datadir = config['Paths'].get('DATADIR', '').strip()
-        if not datadir:
+        data_dir = config['Paths'].get('DATADIR', '').strip()
+        if not data_dir:
             logging.error('DATADIR is not set in the configuration file.')
             return
 
@@ -118,7 +119,7 @@ def cleanup_orphaned_directories():
         db_directories = [row[0] for row in c.fetchall()]
 
         # Get all actual directories from the root directory
-        actual_directories = [d for d in os.listdir(datadir) if os.path.isdir(os.path.join(datadir, d))]
+        actual_directories = [d for d in os.listdir(data_dir) if os.path.isdir(os.path.join(data_dir, d))]
 
         # Compare the two lists and find directories in the database that don't exist in the root folder
         orphaned_directories = set(db_directories) - set(actual_directories)
@@ -168,21 +169,21 @@ def logout():
 
 # Initialize directory data (check for new/missed directories and update their status)
 def initialize_directory_data():
-    datadir = config['Paths'].get('DATADIR', '').strip()
-    if not datadir:
+    data_dir = config['Paths'].get('DATADIR', '').strip()
+    if not data_dir:
         logging.error('DATADIR is not set in the configuration file.')
         return
 
     # Load all directories and check status (this runs once on app startup)
-    logging.debug(f'Loading all directories and checking status from: {datadir}')
-    load_directories_into_db(datadir)
+    logging.debug(f'Loading all directories and checking status from: {data_dir}')
+    load_directories_into_db(data_dir)
 
 # Load only new or modified directory data into the SQLite database
-def load_directories_into_db(datadir=None, single_directory=None):
+def load_directories_into_db(data_dir=None, single_directory=None):
     if single_directory:
         logging.debug(f'Loading single directory: {single_directory}')
-    elif datadir:
-        logging.debug(f'Starting to load directories from: {datadir}')
+    elif data_dir:
+        logging.debug(f'Starting to load directories from: {data_dir}')
     else:
         logging.error('Neither datadir nor single_directory were provided.')
         return
@@ -191,10 +192,10 @@ def load_directories_into_db(datadir=None, single_directory=None):
     if single_directory:
         directories_to_load = [single_directory]
     else:
-        if not os.path.exists(datadir):
-            logging.error(f'Data directory does not exist: {datadir}')
+        if not os.path.exists(data_dir):
+            logging.error(f'Data directory does not exist: {data_dir}')
             return
-        directories_to_load = os.scandir(datadir)
+        directories_to_load = os.scandir(data_dir)
 
     conn = sqlite3.connect(DIRDATABASE)
     c = conn.cursor()
@@ -259,8 +260,8 @@ def load_directories_into_db(datadir=None, single_directory=None):
 active_observers = {}
 
 class SubdirectoryEventHandler(FileSystemEventHandler):
-    def __init__(self, observer, dir_name):
-        self.observer = observer
+    def __init__(self, local_observer, dir_name):
+        self.observer = local_observer
         self.dir_name = dir_name
 
     def on_created(self, event):
@@ -323,33 +324,33 @@ class RootDirectoryEventHandler(FileSystemEventHandler):
             return
         
         # Create a new observer for the subdirectory
-        observer = Observer()
-        event_handler = SubdirectoryEventHandler(observer, os.path.basename(subdirectory_path))
-        observer.schedule(event_handler, path=subdirectory_path, recursive=False)
-        observer.start()
+        local_observer = Observer()
+        event_handler = SubdirectoryEventHandler(local_observer, os.path.basename(subdirectory_path))
+        local_observer.schedule(event_handler, path=subdirectory_path, recursive=False)
+        local_observer.start()
         
-        active_observers[subdirectory_path] = observer
+        active_observers[subdirectory_path] = local_observer
         logging.info(f'Started monitoring {subdirectory_path}')
 
     def stop_subdirectory_watcher(self, subdirectory_name):
         # Stop the observer for the subdirectory if it exists
-        for path, observer in list(active_observers.items()):
+        for path, local_observer in list(active_observers.items()):
             if subdirectory_name in path:
-                observer.stop()
-                observer.join()
+                local_observer.stop()
+                local_observer.join()
                 del active_observers[path]
                 logging.info(f'Stopped monitoring {subdirectory_name}')
 
 
 # Start the root directory watcher
-def start_directory_watcher(datadir):
-    logging.debug(f'Starting root directory watcher on: {datadir}')
+def start_directory_watcher(data_dir):
+    logging.debug(f'Starting root directory watcher on: {data_dir}')
     event_handler = RootDirectoryEventHandler()
-    observer = Observer()
-    observer.schedule(event_handler, path=datadir, recursive=False)
-    observer.start()
-    logging.debug(f'Root directory watcher started for: {datadir}')
-    return observer
+    local_observer = Observer()
+    local_observer.schedule(event_handler, path=data_dir, recursive=False)
+    local_observer.start()
+    logging.debug(f'Root directory watcher started for: {data_dir}')
+    return local_observer
 
 # Function to update the directory status in the database
 def update_directory_status(dir_name, new_status):
@@ -375,7 +376,6 @@ def update_directory_status(dir_name, new_status):
     conn.commit()
     conn.close()
     logging.debug(f"Status for {dir_name} updated to {new_status}")
-
 
 # Route to get directory data from the SQLite database
 @app.route('/get_directories_json')
@@ -408,14 +408,12 @@ def get_directories_json():
     # Return the JSON response with the explicit order
     return json_response
 
-
 # Home route to render the index.html template
 @app.route('/')
 @login_required
 def home():
     logging.info('Accessing the home page')
     return render_template('index.html')
-
 
 # Upload route
 @app.route('/upload', methods=['POST'])
@@ -428,7 +426,7 @@ def upload():
         return "Directory name not provided", 400  # Return 400 if directory_name is missing
 
     # Start upload in a separate thread to avoid blocking
-    upload_thread = threading.Thread(target=run_upload, args=(directory_name,))
+    upload_thread = threading.Thread(target=upload.py, args=(directory_name,))
     upload_thread.start()
 
     return "Upload started", 200
@@ -440,14 +438,14 @@ def reset_status():
     directory_name = request.form['directory_name']
     logging.info(f'Resetting status for directory: {directory_name}')
 
-    datadir = config['Paths'].get('DATADIR', '').strip()
+    data_dir = config['Paths'].get('DATADIR', '').strip()
 
-    if not datadir:
+    if not data_dir:
         logging.warning('Data Directory is not set in the configuration file.')
         flash('Data Directory is not set in the configuration file.', 'warning')
         return redirect(url_for('home'))
 
-    dir_path = os.path.join(datadir, directory_name)
+    dir_path = os.path.join(data_dir, directory_name)
 
     # Remove status directories
     for status in ['uploading', 'uploaded', 'dupe']:
@@ -465,14 +463,14 @@ def set_uploaded():
     directory_name = request.form['directory_name']
     logging.info(f'Setting directory as uploaded: {directory_name}')
 
-    datadir = config['Paths'].get('DATADIR', '').strip()
+    data_dir = config['Paths'].get('DATADIR', '').strip()
 
-    if not datadir:
+    if not data_dir:
         logging.warning('Data Directory is not set in the configuration file.')
         flash('Data Directory is not set in the configuration file.', 'warning')
         return redirect(url_for('home'))
 
-    dir_path = os.path.join(datadir, directory_name)
+    dir_path = os.path.join(data_dir, directory_name)
 
     # Remove any existing status folders
     for status in ['uploading', 'uploaded', 'dupe']:
@@ -492,13 +490,10 @@ def remove_status_file(dir_path, status):
         logging.debug(f'Removing status file: {status_path}')
         os.rmdir(status_path)
 
-
-
 def create_status_file(dir_path, status):
     status_path = os.path.join(dir_path, f'.{status}')
     logging.debug(f'Creating status file: {status_path}')
     os.makedirs(status_path, exist_ok=True)
-
 
 #################################### SETTINGS PAGE #####################################################
 
@@ -530,7 +525,7 @@ def settings():
         return redirect(url_for('settings'))
 
     # Load current settings from config.ini into the template
-    settings = {
+    settings_template = {
         'Header': dict(config['Header']),
         'Website': dict(config['Website']),
         'UploadForm': dict(config['UploadForm']),
@@ -542,7 +537,7 @@ def settings():
         'Settings': dict(config['Settings']),
         'MediaTools': dict(config['MediaTools'])
     }
-    return render_template('settings.html', settings=settings)
+    return render_template('settings.html', settings=settings_template)
 
 
 #################################### CATEGORY PAGE #####################################################
@@ -604,12 +599,12 @@ def edit_categories():
 @app.route('/get_status_updates', methods=['GET'])
 @login_required
 def get_status_updates():
-    datadir = config['Paths'].get('DATADIR', '').strip()
+    data_dir = config['Paths'].get('DATADIR', '').strip()
     directories = []
 
     # Loop through directories in the data directory and gather statuses
-    for dir_name in os.listdir(datadir):
-        dir_path = os.path.join(datadir, dir_name)
+    for dir_name in os.listdir(data_dir):
+        dir_path = os.path.join(data_dir, dir_name)
         if os.path.isdir(dir_path):
             status = 'none'
             if os.path.exists(os.path.join(dir_path, '.dupe')):
@@ -627,9 +622,6 @@ def get_status_updates():
 
     return jsonify(directories)
 
-
-
-
 #################################### MONITOR PAGE #####################################################
 
 # Monitor page route
@@ -637,7 +629,6 @@ def get_status_updates():
 @login_required
 def monitor():
     return render_template('monitor.html')
-
 
 @app.route('/get_terminal_output', methods=['GET'])
 @login_required
@@ -709,7 +700,7 @@ def get_logs():
     cursor = conn.cursor()
     
     cursor.execute('SELECT name, category, date, status, size, imdb_url, screenshot_url, image_url FROM uploads')
-    logs = cursor.fetchall()
+    existing_logs = cursor.fetchall()
     
     conn.close()
 
@@ -725,7 +716,7 @@ def get_logs():
             'screenshot_url': row[6],
             'image_url': row[7]
         }
-        for row in logs
+        for row in existing_logs
     ]
 
     return jsonify({'data': log_data})
@@ -766,11 +757,3 @@ if __name__ == '__main__':
             observer.stop()
             observer.join()
             logging.debug('Directory watcher stopped.')
-
-
-
-
-
-
-
-
