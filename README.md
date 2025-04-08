@@ -76,12 +76,12 @@ With the actual movie inside being:
 
 The DATADIR would be /home/torrentdata
 
-You would run: upload.sh "/home/torrentdata/tracker1/this.is.a.nice.movie-grp"
+You would run: `upload.sh "/home/torrentdata/tracker1/this.is.a.nice.movie-grp"`
 
 By default, the program assumes that the data to be uploaded already exists in DATADIR. See optional arguments if you wish to modify this behavior.
 
 #### Optional arguments:
--h, --help: Prints help. Called via upload.sh -h or upload.sh --help.
+-h, --help: Prints help. Called via `upload.sh -h` or `upload.sh --help`.
 
 Following arguments are primarily used when user is using discrete directories.
 
@@ -116,6 +116,22 @@ DATADIR can't be both /data/movie *and* /data/tv at the same time, so what do yo
 Now, you set DATADIR to /data/uploads, and --link,--copy, or --mv become non-optional arguments. You must pick one. Then, if you run the upload script with your chosen option on /data/movie/someneatmovie, it will hardlink/symlink/copy/move /data/movie/someneatmovie to /data/uploads, resulting in a final directory of /data/uploads/someneatmovie with someneatmovie.mkv inside the someneatmovie directory. If you use --link, this results in a second copy of the file that takes no disk space. Also known as black magic.
 
 The alternative is to update config.ini's DATADIR every time you want to upload from a different directory, but who wants to do that?
+
+## Uninstall
+
+To remove just the program, simply delete the program folder.
+
+To remove the python virtual environment, simply delete the virtual environment folder specified during install
+
+To remove the dependencies installed via apt, run:
+
+`apt remove build-essential mtn mediainfo libfuse-dev screen software-properties-common autoconf && apt autoremove -y`
+
+To remove rar2fs:
+
+`rm /usr/local/bin/rar2fs`
+
+
 
 ## FAQ
 

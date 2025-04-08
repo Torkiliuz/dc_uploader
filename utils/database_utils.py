@@ -1,6 +1,7 @@
 import sqlite3
 from datetime import datetime
 import sys
+from pathlib import Path
 
 UPLOADS_DB = 'data/uploads.db'
 TERMINAL_OUTPUT_DB = 'data/terminal_output.db'
@@ -61,6 +62,8 @@ def create_directories_table():
 
 def initialize_all_databases():
     """Initialize all required databases."""
+    # Ensure data directory for databases exists
+    Path("data").mkdir(parents=False, mode=0o775, exist_ok=True)
     create_uploads_table()
     create_terminal_output_table()
     create_directories_table()

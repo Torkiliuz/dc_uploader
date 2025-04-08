@@ -1,20 +1,23 @@
 #!/bin/bash
 
 print_help() {
-    echo "Script usage: upload.sh \"/full/path/to/torrent/directory\" [OPTION]"
+    echo "Script usage: $(basename "$0") \"/full/path/to/torrent/directory\" [OPTION]"
+    echo "Full path must be in double quotes, as shown above"
     echo "Optional arguments:"
     echo "-l, --link: Hardlinks provided directory to DATADIR. If hardlink fails, fallback to symlink."
     echo
     echo "-c, --copy: Copies provided directory to DATADIR"
     echo
     echo "-m, --move: Moves provided directory to DATADIR"
-    exit 0
+    echo
+    echo "-h, --help: Show this help page"
 }
 
 # Initial argument check
 if [ $# -eq 0 ] || [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
     # No arguments provided or first argument was help, just print help
     print_help
+    exit 0
 fi
 
 if [ $# -gt 2 ]; then
@@ -33,10 +36,11 @@ LN=false
 CP=false
 MV=false
 
-if [ -n "$2" ]; then
+if [ $# -gt 1 ]; then
     # Only bother parsing args if an arg beside path is specified
-    if ! OPTS=$(getopt -o 'hlcm' -l 'help,link,copy,move' -n 'upload.sh' -- "$@"); then
+    if ! OPTS=$(getopt -o 'hlcm' -l 'help,link,copy,move' -n "$(basename "$0")" -- "$@"); then
         echo "Failed to parse options" >&2
+        print_help
         exit 1
     fi
     # Reset the positional parameters to the parsed options
@@ -59,6 +63,7 @@ if [ -n "$2" ]; then
                 ;;
             -h | --help)
                 print_help
+                exit 0
                 ;;
             --)
                 shift
@@ -66,6 +71,7 @@ if [ -n "$2" ]; then
                 ;;
             *)
                 echo "Unrecognized argument" >&2
+                print_help
                 exit 1
                 ;;
         esac
