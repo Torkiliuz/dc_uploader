@@ -265,27 +265,6 @@ def main():
         cleanup_tmp_dir(TMP_DIR, cleanup_enabled)  # Clean up TMP_DIR
         return
 
-    update_upload_status(name=directory_name, new_status='uploading')
-    print(ascii_art_header("Create Torrent"))
-    # Create a torrent file and store it in the process-specific directory
-    try:
-        upload_details['etor_started'] = time.strftime('%a %b %d %H:%M:%S %Z %Y')
-        
-        # Capture both torrent_file and piece_size from create_torrent
-        torrent_file, piece_size = create_torrent(directory, temp_dir)
-        
-        if torrent_file is None:
-            raise Exception("Failed to create torrent file.")
-        
-        upload_details['torrent_file'] = torrent_file
-        upload_details['piece_size'] = piece_size
-        upload_details['etor_completed'] = time.strftime('%a %b %d %H:%M:%S %Z %Y')
-
-    except Exception as e:
-        log(f"Error creating torrent: {str(e)}", log_file_path)
-        update_upload_status(name=directory_name, new_status='failed')
-        return
-
     print(ascii_art_header("Category"))
 
     # Determine the category of the torrent
@@ -293,14 +272,12 @@ def main():
     category_id = int(category_id_str)  # Convert category_id to integer
 
     upload_details['category'] = f"{category_name} ({category_id})"
-
     update_upload_status(name=directory_name, new_status='uploading', size=f'{upload_details["size"]}', category=f'{category_name}')
-
 
     # Initialize replacements dictionary
     replacements = {}
 
-    # Screenshots processing
+    ### Screenshots processing section
     if screenshots_enabled:
         print(ascii_art_header("Screenshots"))
         if category_id in screenshot_categories:
@@ -381,7 +358,6 @@ def main():
 
     imdb_id = re.search(r'tt\d+', imdb_link).group() if imdb_link else ''
 
-
     # Game information processing
     if gameinfo_enabled and category_id in game_categories:
         print(ascii_art_header("Gameinfo"))
@@ -433,6 +409,27 @@ def main():
     else:
         # If gameinfo is disabled or category is not in game categories
         replacements['!gameinfo!'] = ''
+
+    ### Torrent creation section
+    print(ascii_art_header("Create Torrent"))
+    # Create a torrent file and store it in the process-specific directory
+    try:
+        upload_details['etor_started'] = time.strftime('%a %b %d %H:%M:%S %Z %Y')
+
+        # Capture both torrent_file and piece_size from create_torrent
+        torrent_file, piece_size = create_torrent(directory, temp_dir)
+
+        if torrent_file is None:
+            raise Exception("Failed to create torrent file.")
+
+        upload_details['torrent_file'] = torrent_file
+        upload_details['piece_size'] = piece_size
+        upload_details['etor_completed'] = time.strftime('%a %b %d %H:%M:%S %Z %Y')
+
+    except Exception as e:
+        log(f"Error creating torrent: {str(e)}", log_file_path)
+        update_upload_status(name=directory_name, new_status='failed')
+        return
 
     # Image upload processing
     print(ascii_art_header("UploadImages"))
