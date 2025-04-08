@@ -447,7 +447,7 @@ def reset_status():
     dir_path = os.path.join(data_dir, directory_name)
 
     # Remove status directories
-    for status in ['uploading', 'uploaded', 'dupe', 'failed', 'initializing']:
+    for status in ['uploading', 'uploaded', 'dupe', 'failed', 'processing']:
         status_dir = os.path.join(dir_path, f'.{status}')
         if os.path.isdir(status_dir):
             logging.debug(f'Removing status directory: {status_dir}')

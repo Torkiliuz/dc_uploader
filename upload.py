@@ -148,7 +148,7 @@ def main():
 
     if len(sys.argv) > 1:
         directory_name = sys.argv[1]
-        update_upload_status(name=directory_name, new_status='initializing')
+        update_upload_status(name=directory_name, new_status='processing')
     else:
         log("No directory name provided.", log_file_path)
         return
