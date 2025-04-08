@@ -74,7 +74,7 @@ fi
 
 if [ "$EUID" -ne 0 ]; then
     echo "Please run as root or with sudo" >&2
-    exit 1
+    #exit 1
 fi
 
 SCRIPT_DATA_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")" || exit ; pwd -P )
