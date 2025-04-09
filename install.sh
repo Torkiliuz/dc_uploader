@@ -38,7 +38,7 @@ certbot_cf() {
     else
         # No valid pre-existing cloudflare.ini found
         if ! $ARGS_USED; then
-            read -p "Cloudflare API token : " CF_TOKEN -r
+            read -p "Cloudflare API token : " -r CF_TOKEN
             if [ -z "$CF_TOKEN" ]; then
                 echo "No Cloudflare token supplied, cannot continue" >&2
                 exit 1
@@ -209,7 +209,7 @@ if ! $ARGS_USED; then
         # User chooses to use a domain
         echo "Info: If a Let's Encrypt certificate for the requested domain already exists, it will be imported"\
         "instead of creating a new certificate"
-        read -p "Enter the fully qualified domain name for the server for Let's Encrypt : " SERVER_NAME -r
+        read -p "Enter the fully qualified domain name for the server for Let's Encrypt : " -r SERVER_NAME
         USE_DOMAIN=true
     else
         # User chooses to use a self-signed certificate
@@ -369,7 +369,7 @@ if $USE_DOMAIN; then
             python3 -m venv /opt/certbot/
         fi
         /opt/certbot/bin/pip install --upgrade pip
-        /opt/certbot/bin/pip install certbot certbot-nginx
+        /opt/certbot/bin/pip install certbot
         ln -sf /opt/certbot/bin/certbot /usr/bin/certbot
 
     echo "Configuring SSL with Let's Encrypt..."
@@ -387,7 +387,9 @@ if $USE_DOMAIN; then
                 USE_CLOUDFLARE=true
                 certbot_cf
             else
-                # User answered no, just call certbot.
+                # User answered no, install certbot nginx plugin
+                /opt/certbot/bin/pip install certbot-nginx
+                echo "Calling certbot for credentials using HTTP challenge..."
                 certbot --nginx --agree-tos --register-unsafely-without-email --key-type ecdsa \
                 --elliptic-curve secp384r1 -d "$SERVER_NAME"
             fi
@@ -397,6 +399,7 @@ if $USE_DOMAIN; then
                 certbot_cf
             else
                 # No CF token provided, use HTTP challenge
+                /opt/certbot/bin/pip install certbot-nginx
                 echo "Calling certbot for credentials using HTTP challenge..."
                 certbot --nginx --agree-tos --register-unsafely-without-email --key-type ecdsa \
                 --elliptic-curve secp384r1 -d "$SERVER_NAME"
@@ -433,7 +436,7 @@ else
     # Generate a self-signed certificate
     echo "Generating self-signed certificate..."
     openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -keyout key.pem -out cert.pem -days 3650 -nodes \
-    -subj "/CN=$SERVER_NAME" -addext "subjectAltName=DNS:$SERVER_NAME"
+    -subj "/CN=$SERVER_NAME"
 
     # Move self-signed certificates to an appropriate directory (e.g., /etc/ssl)
     echo "Self-signed certificate generated, moving certificates to /etc/ssl from working directory"
