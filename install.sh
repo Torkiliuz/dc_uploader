@@ -51,7 +51,7 @@ certbot_cf() {
                 exit 1
             fi
         fi
-        mkdir /root/.secrets/
+        mkdir -p /root/.secrets/
         touch /root/.secrets/cloudflare.ini
         echo "dns_cloudflare_api_token = $CF_TOKEN" | tee /root/.secrets/cloudflare.ini
         chmod 0700 /root/.secrets/
