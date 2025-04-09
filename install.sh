@@ -65,6 +65,14 @@ certbot_cf() {
     --dns-cloudflare --dns-cloudflare-credentials /root/.secrets/cloudflare.ini -d "$SERVER_NAME"
 }
 
+certbot_nginx(){
+    apt-get install -y nginx
+    /opt/certbot/bin/pip install certbot-nginx
+    echo "Calling certbot for credentials using HTTP challenge..."
+    certbot --nginx --agree-tos --register-unsafely-without-email --key-type ecdsa \
+    --elliptic-curve secp384r1 -d "$SERVER_NAME"
+}
+
 add_auto_renewal(){
     # Adds renewal to cron
     if ! cat /etc/crontab | grep -q "certbot renew -q"; then
@@ -388,10 +396,7 @@ if $USE_DOMAIN; then
                 certbot_cf
             else
                 # User answered no, install certbot nginx plugin
-                /opt/certbot/bin/pip install certbot-nginx
-                echo "Calling certbot for credentials using HTTP challenge..."
-                certbot --nginx --agree-tos --register-unsafely-without-email --key-type ecdsa \
-                --elliptic-curve secp384r1 -d "$SERVER_NAME"
+                certbot_nginx
             fi
         else
             # Args provided, use args to make decision
@@ -399,10 +404,7 @@ if $USE_DOMAIN; then
                 certbot_cf
             else
                 # No CF token provided, use HTTP challenge
-                /opt/certbot/bin/pip install certbot-nginx
-                echo "Calling certbot for credentials using HTTP challenge..."
-                certbot --nginx --agree-tos --register-unsafely-without-email --key-type ecdsa \
-                --elliptic-curve secp384r1 -d "$SERVER_NAME"
+                certbot_nginx
             fi
         fi
     fi
