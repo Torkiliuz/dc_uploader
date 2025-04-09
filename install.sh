@@ -129,7 +129,7 @@ USE_CLOUDFLARE=false
 
 if [ $# -ne 0 ]; then
     # Only bother parsing args if an arg beside path is specified
-    if ! OPTS=$(getopt -o 'hyd:v:t:,c' -l 'help,domain:,venv:,cloudflare-token:,--cloudflare' \
+    if ! OPTS=$(getopt -o 'hyd:v:t:,c' -l 'help,domain:,venv:,cloudflare-token:,cloudflare' \
     -n "$(basename "$0")" -- "$@"); then
         echo "Failed to parse options" >&2
         print_help
