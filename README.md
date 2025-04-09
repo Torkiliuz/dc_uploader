@@ -37,7 +37,7 @@ A simple python tool built for ubuntu to create and upload torrents. Debian is u
     - WATCHFOLDER
 
 5. Run start.sh
-6. Nagivate to https://[hostname.domain]:5000, assuming you used the default port. If you specified a different port during install, use that.
+6. Navigate to https://[hostname.domain]:5000, assuming you used the default port. If you specified a different port during install, use that.
 7. Login with your specified username/password
 8. Update the relevant settings as needed
 9. You're ready to upload now!
@@ -174,7 +174,7 @@ A: The data isn't moved because it might be used by another torrent.
 
 #### Q: When does the tool fallback to symlinking?
 
-A: The primary limitation of hardlinking is that the source and intended destination must be on the same filesystem - e.g. it can't hardlink from one harddrive to another, from one harddrive to a SMB/NFS mount, etc. When the tool detects that a hardlink can't be done, it tries again using symlinks.
+A: The primary limitation of hardlinking is that the source and intended destination must be on the same filesystem - e.g. it can't hardlink from one hard drive to another, from one hard drive to a SMB/NFS mount, etc. When the tool detects that a hardlink can't be done, it tries again using symlinks.
 
 ### Q: Can I use this tool on windows?
 
