@@ -3,11 +3,8 @@
 print_help() {
     echo "Script usage: $(basename "$0") [OPTION]"
     echo "Optional arguments:"
-    echo "-y: Answer yes to all warnings"
     echo
     echo "-d, --domain: Fully qualified domain name (e.g. hostname.domain.tld) you wish to use for the web app."
-    echo
-    echo "-v, --venv: Path where virtual environment is install to. Default if not provided: /opt/dcc-uploader"
     echo
     echo "-h, --help: Show this help page"
 }
@@ -19,49 +16,12 @@ command_exists() {
     command -v "$1" &> /dev/null
 }
 
-handle_reply() {
-    # Store in local variables
-    RPLY=$1
-    NO_MSG=$2
-    # If the no response should be piped to stderr
-    TO_ERROR=${3:-false}
-
-    if [[ "$RPLY" =~ ^[Yy]$ ]]; then
-        # Continue install, but echo once to make lines cleaner
-        echo
-        return 0
-    elif [[ "$RPLY" =~ ^[Nn]$ ]]; then
-        echo
-        if $TO_ERROR; then
-            echo "$NO_MSG" >&2
-        else
-            echo "$NO_MSG"
-        fi
-        return 1
-    elif [ -z "$RPLY" ]; then
-        if $TO_ERROR; then
-            echo "$NO_MSG" >&2
-        else
-            echo "$NO_MSG"
-        fi
-        return 1
-    else
-        echo
-        echo "Invalid input. Only y/n are accepted (case insensitive)" >&2
-        exit 1
-    fi
-}
-
 # Set default values if not provided
-YES=false
-ARGS_USED=false
-USE_DOMAIN=false
-VENV_PATH=/opt/dcc-uploader
 HOSTNAME="$(hostname -f)"
 
 if [ $# -ne 0 ]; then
     # Only bother parsing args if an arg beside path is specified
-    if ! OPTS=$(getopt -o 'hyd:v:' -l 'help,domain:,venv:' -n "$(basename "$0")" -- "$@"); then
+    if ! OPTS=$(getopt -o 'hd:' -l 'help,domain:' -n "$(basename "$0")" -- "$@"); then
         echo "Failed to parse options" >&2
         print_help
         exit 1
@@ -71,19 +31,8 @@ if [ $# -ne 0 ]; then
     # Process arguments
     while true; do
         case "$1" in
-            -y )
-                YES=true
-                shift
-                ;;
             -d | --domain)
                 SERVER_NAME="$2"
-                ARGS_USED=true
-                USE_DOMAIN=true
-                shift 2
-                ;;
-            -v | --venv)
-                VENV_PATH="$2"
-                ARGS_USED=true
                 shift 2
                 ;;
             -h | --help)
@@ -123,13 +72,7 @@ SCRIPT_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 
 cd "$SCRIPT_PATH"
 
-if ! $ARGS_USED; then
-    # Ask user if they want to use a domain or a self-signed certificate
-    read -p "Enter the path for the python virtual environment [default: /opt/dcc-uploader] : " -r
-    VENV_PATH=${REPLY:-/opt/dcc-uploader}
-fi
-
-if ! $ARGS_USED; then
+if [ -z "$SERVER_NAME" ]; then
     # Initiate server name to hostname in case user selects N. Needed for handle_reply.
     read -p "Enter the fully qualified domain name for the self-signed certificate [default: hostname] : " -r
     SERVER_NAME=${REPLY:-"$HOSTNAME"}
@@ -142,9 +85,6 @@ if [ "$SERVER_NAME" != "$HOSTNAME" ]; then
         exit 1
     fi
 fi
-
-# Clean up the venv path provided
-VENV_PATH=$(realpath -s "$VENV_PATH")
 
 # Add the PPA repository if not already added
 if ! [ -f /etc/apt/sources.list.d/wahibre-ubuntu-mtn-noble.sources ]; then
@@ -159,7 +99,7 @@ apt-get update
 
 # Required packages
 echo "Installing required tools and their dependencies..."
-apt-get install -y build-essential mtn mediainfo libfuse-dev screen autoconf
+apt-get install -y build-essential mtn mediainfo fuse3 libfuse-dev screen autoconf python3 python3-venv
 
 # Install rar2fs
 if [[ ! -f /usr/local/bin/rar2fs ]]; then
@@ -199,45 +139,14 @@ if [[ ! -f /usr/local/bin/rar2fs ]]; then
     rm -rf $WORKDIR
 fi
 
-# Check if Python is installed, and install it if not
-if ! command_exists python3; then
-    echo "Python not found. Installing Python..."
-    apt-get install python3 -y
-fi
-
-if ! dpkg -l python3-venv | grep -q "venv module"; then
-    echo "Python venv package not found. Installing..."
-    apt-get install python3-venv -y
-fi
-
 # Create venv
-echo "Creating python virtual environment..."
-if [ -d "$VENV_PATH" ]; then
-    if ! [ -f "$VENV_PATH/bin/python3" ]; then
-        # Existing directory is NOT a virtual environment, aborting
-        echo "Supplied virtual environment path conflicts with existing directory that is not a python virtual"\
-        "environment, please select a different path for the virtual environment" >&2
-        exit 1
-    fi
-    if ! $YES; then
-        # Only ask for user warning confirmation if they didn't specify -y
-        read -p "Warning: virtual environment already exists, continue? [y/n, default: n] : " -r -n 1
-        if ! handle_reply "$REPLY" "Aborting install" true; then
-            exit 1
-        fi
-    fi
-else
-    # Make venv
-    python3 -m venv "$VENV_PATH"
-fi
+python3 -m venv venv
 
 # Install Python packages
-echo "Installing Python packages in $VENV_PATH virtual environment..."
-"$VENV_PATH/bin/pip3" install --upgrade pip
-"$VENV_PATH/bin/pip3" install -r requirements.txt
+echo "Installing Python packages in virtual environment..."
+"venv/bin/pip3" install --upgrade pip
+"venv/bin/pip3" install --upgrade -r requirements.txt
 
-# Write virtual env path to venv.path
-echo "$VENV_PATH" | tee venv.path > /dev/null
 # Ensure user scripts are executable
 chmod +x start.sh
 chmod +x shutdown.sh
@@ -249,7 +158,7 @@ echo "Initiating polar bear attack (do you guys actually read these messages?)"
 echo "Initializing databases..."
 # Does not need virtual environment since it is touching stuff outside of virtual environment
 
-if "$VENV_PATH/bin/python3" utils/database_utils.py initialize_all_databases; then
+if "venv/bin/python3" utils/database_utils.py initialize_all_databases; then
     echo "Databases created successfully."
 else
     echo "Error occurred while creating databases." >&2

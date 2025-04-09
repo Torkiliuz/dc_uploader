@@ -87,9 +87,7 @@ SCRIPT_DATA_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")" || exit ; pwd -P )
 
 cd "$SCRIPT_DATA_PATH" || exit
 
-VENV_DATA_PATH=$(head -n 1 venv.path)
-
 # Run using venv
-source "$VENV_DATA_PATH/bin/activate"
+source "venv/bin/activate"
 
-"$VENV_DATA_PATH/bin/python3" upload.py $1
+"python3" upload.py "$DATA_PATH"
