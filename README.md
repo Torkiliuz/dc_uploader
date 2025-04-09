@@ -179,7 +179,3 @@ A: The primary limitation of hardlinking is that the source and intended destina
 ### Q: Can I use this tool on windows?
 
 A: Maybe, but most likely not. While built on python, it does rely quite a bit on assumptions specific to Linux. The bash scripts certainly will not work. Instead, look into [WSL](https://learn.microsoft.com/en-us/windows/wsl/install). Once WSL is running, just mount your torrent parent folder to the WSL environment through /etc/fstab and you should be fine. Treat it like a second computer.
-
-### Q: I used certbot to get certificates, does it renew for me?
-
-A: No, unless you've previously set up renewal yourself. The install script does not set up renewal for you. If you want to set up automatic renewal, run
