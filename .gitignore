@@ -301,6 +301,24 @@ poetry.toml
 # LSP config files
 pyrightconfig.json
 
+# Created by git when using merge tools for conflicts
+*.BACKUP.*
+*.BASE.*
+*.LOCAL.*
+*.REMOTE.*
+*_BACKUP_*.txt
+*_BASE_*.txt
+*_LOCAL_*.txt
+*_REMOTE_*.txt
+
 # End of https://www.toptal.com/developers/gitignore/api/linux,pycharm,python
 /venv.path
 /data/
+
+# Don't add certificates to git, should be pretty obvious why
+*.pem
+*.key
+*.crt
+*.cer
+*.der
+*.priv
