@@ -5,21 +5,9 @@ print_help() {
     echo "Optional arguments:"
     echo "-y: Answer yes to all warnings"
     echo
-    echo "-d, --domain: Fully qualified domain name (e.g. hostname.domain.tld) you wish to use for the web app."\
-    "If provided, uses certbot to request certificates from Let's Encrypt. Default if not provided: self-signed"
+    echo "-d, --domain: Fully qualified domain name (e.g. hostname.domain.tld) you wish to use for the web app."
     echo
     echo "-v, --venv: Path where virtual environment is install to. Default if not provided: /opt/dcc-uploader"
-    echo
-    echo "-c, --cloudflare: Use cloudflare DNS challenge if you want to use Cloudflare DNS challenge instead of HTTP"\
-    "challenge. Will automatically install certbot cloudflare plugins."
-    echo
-    echo "-t, --cloudflare-token: Cloudflare API token to use for Cloudflare DNS challenge. If a token is provided,"\
-    "-c/--cloudflare is automatically assumed and user does not need to provide that argument. Token will be stored in"\
-    "/root/.secrets/cloudflare.ini post-install. Attempts to re-use token found in cloudflare.ini if -c/--cloudflare"\
-    "is set but no token is provided."
-    echo "NOTE: providing a Cloudflare API token when one already exists in /root/.secrets/cloudflare.ini will result"\
-    "in the existing one being used, and the provided one ignored. If you wish to update the token in cloudflare.ini,"\
-    "you must do so manually."
     echo
     echo "-h, --help: Show this help page"
 }
@@ -29,65 +17,6 @@ set -e
 # Function to check if a command exists
 command_exists() {
     command -v "$1" &> /dev/null
-}
-
-certbot_cf() {
-    if [ -f "/root/.secrets/cloudflare.ini" ] \
-    && cat /root/.secrets/cloudflare.ini | grep -qP '^dns_cloudflare_api_token ?= ?\S{40}'; then
-        echo "Cloudflare credentials with valid length token already exists, reusing existing credentials."
-    else
-        # No valid pre-existing cloudflare.ini found
-        if ! $ARGS_USED; then
-            read -p "Cloudflare API token : " -r CF_TOKEN
-            if [ -z "$CF_TOKEN" ]; then
-                echo "No Cloudflare token supplied, cannot continue" >&2
-                exit 1
-            elif [ "${#CF_TOKEN}" -ne 40 ]; then
-                echo "Provided token is not long enough to be a valid token" >&2
-                exit 1
-            fi
-        else
-            # Check to see if user provided a token when using arg mode.
-            # There wasn't a valid one to reuse, so it needs to be provided
-            if [ -z "$CF_TOKEN" ]; then
-                echo "No Cloudflare token supplied and no valid tokens were found in cloudflare.ini, aborting" >&2
-                exit 1
-            fi
-        fi
-        mkdir -p /root/.secrets/
-        touch /root/.secrets/cloudflare.ini
-        echo "dns_cloudflare_api_token = $CF_TOKEN" | tee /root/.secrets/cloudflare.ini
-        chmod 0700 /root/.secrets/
-        chmod 0600 /root/.secrets/cloudflare.ini
-        echo "Cloudflare credentials created"
-    fi
-    echo "Installing certbot cloudflare plugin..."
-    /opt/certbot/bin/pip install certbot-dns-cloudflare
-    echo "Calling certbot for credentials using DNS challenge..."
-    certbot certonly --agree-tos --register-unsafely-without-email --key-type ecdsa --elliptic-curve secp384r1 \
-    --dns-cloudflare --dns-cloudflare-credentials /root/.secrets/cloudflare.ini -d "$SERVER_NAME"
-}
-
-certbot_nginx(){
-    apt-get install -y nginx
-    /opt/certbot/bin/pip install certbot-nginx
-    echo "Calling certbot for credentials using HTTP challenge..."
-    certbot --nginx --agree-tos --register-unsafely-without-email --key-type ecdsa \
-    --elliptic-curve secp384r1 -d "$SERVER_NAME"
-}
-
-add_auto_renewal(){
-    # Adds renewal to cron
-    if ! cat /etc/crontab | grep -q "certbot renew -q"; then
-        # At 12AM and 12PM every day. Will only renew certificates if eligible for automatic renewal
-        echo "0 0,12 * * * root /opt/certbot/bin/python -c"\
-        "'import random; import time; time.sleep(random.random() * 3600)' && sudo certbot renew -q" | \
-        tee -a /etc/crontab > /dev/null
-    fi
-    if ! cat /etc/crontab | grep -q "/opt/certbot/bin/pip install --upgrade certbot"; then
-        # At 8am on the first day of the month
-      echo "0 8 1 * * root /opt/certbot/bin/pip install --upgrade certbot" | tee -a /etc/crontab > /dev/null
-    fi
 }
 
 handle_reply() {
@@ -128,12 +57,11 @@ YES=false
 ARGS_USED=false
 USE_DOMAIN=false
 VENV_PATH=/opt/dcc-uploader
-USE_CLOUDFLARE=false
+HOSTNAME="$(hostname -f)"
 
 if [ $# -ne 0 ]; then
     # Only bother parsing args if an arg beside path is specified
-    if ! OPTS=$(getopt -o 'hyd:v:t:,c' -l 'help,domain:,venv:,cloudflare-token:,cloudflare' \
-    -n "$(basename "$0")" -- "$@"); then
+    if ! OPTS=$(getopt -o 'hyd:v:' -l 'help,domain:,venv:' -n "$(basename "$0")" -- "$@"); then
         echo "Failed to parse options" >&2
         print_help
         exit 1
@@ -158,27 +86,14 @@ if [ $# -ne 0 ]; then
                 ARGS_USED=true
                 shift 2
                 ;;
-            -t | --cloudflare-token)
-                CF_TOKEN="$2"
-                if [ "${#CF_TOKEN}" -ne 40 ]; then
-                    echo "Provided token is not long enough to be a valid token" >&2
-                    exit 1
-                fi
-                USE_CLOUDFLARE=true
-                ARGS_USED=true
-                shift 2
-                ;;
-            -c | --cloudflare)
-                USE_CLOUDFLARE=true
-                ARGS_USED=true
-                shift
-                ;;
             -h | --help)
                 print_help
                 exit 0
                 ;;
             --)
                 shift
+                # No domain provided, use a default
+                SERVER_NAME=${SERVER_NAME:-"$HOSTNAME"}
                 break
                 ;;
             *)
@@ -189,6 +104,7 @@ if [ $# -ne 0 ]; then
         esac
     done
 fi
+
 
 if [ "$EUID" -ne 0 ]; then
     echo "Please run as root or with sudo" >&2
@@ -207,7 +123,6 @@ SCRIPT_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 
 cd "$SCRIPT_PATH"
 
-
 if ! $ARGS_USED; then
     # Ask user if they want to use a domain or a self-signed certificate
     read -p "Enter the path for the python virtual environment [default: /opt/dcc-uploader] : " -r
@@ -216,43 +131,19 @@ fi
 
 if ! $ARGS_USED; then
     # Initiate server name to hostname in case user selects N. Needed for handle_reply.
-    SERVER_NAME=$(hostname -f)
-
-    read -p "Do you want to use a domain with Let's Encrypt? Defaults to self signed [y/n, default: n]: " -n 1 -r
-
-    if handle_reply "$REPLY" "Using self-signed certificate for server name: $SERVER_NAME" false; then
-        # User chooses to use a domain
-        echo "Info: If a Let's Encrypt certificate for the requested domain already exists, it will be imported"\
-        "instead of creating a new certificate"
-        read -p "Enter the fully qualified domain name for the server for Let's Encrypt : " -r SERVER_NAME
-        USE_DOMAIN=true
-    else
-        # User chooses to use a self-signed certificate
-        USE_DOMAIN=false
-    fi
-else
-    # Args provided, check if domain is set.
-    if [ -z "$SERVER_NAME" ]; then
-        # No domain name was provided in the args. Assume self-signed
-        USE_DOMAIN=false
-    else
-        # Some domain name was provided (validation done next). Assume SSL
-        USE_DOMAIN=true
-    fi
+    read -p "Enter the fully qualified domain name for the self-signed certificate [default: hostname] : " -r
+    SERVER_NAME=${REPLY:-"$HOSTNAME"}
 fi
 
-# Domain name validation if SSL is being used
-if $USE_DOMAIN; then
-    if [ -z "$SERVER_NAME" ]; then
-        echo "No domain name provided." >&2
-        exit 1
-    elif ! echo "$SERVER_NAME" | grep -qP '(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}$)'; then
+# Domain name validation if an actual domain is being used
+if [ "$SERVER_NAME" != "$HOSTNAME" ]; then
+    if ! echo "$SERVER_NAME" | grep -qP '(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}$)'; then
         echo "Invalid domain name provided." >&2
         exit 1
     fi
 fi
 
-# Clean up the venv path
+# Clean up the venv path provided
 VENV_PATH=$(realpath -s "$VENV_PATH")
 
 # Add the PPA repository if not already added
@@ -366,97 +257,20 @@ else
 fi
 
 # SSL setup
-if $USE_DOMAIN; then
-    # Install Certbot and configure SSL with Let's Encrypt
-        echo "Uninstalling any certbot instances installed via apt"
-        if ! $YES; then
-            read -p "Ready to uninstall any certbot instances installed from apt? [y/n, default n] : " -r -n 1
-            if ! handle_reply "$REPLY" "User did not want to uninstall existing certbot, aborting" true; then
-                exit 1
-            fi
-        fi
+# Generate a self-signed certificate
+echo "Generating self-signed certificate..."
+openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -keyout key.pem -out cert.pem -days 3650 -nodes \
+-subj "/CN=$SERVER_NAME"
 
-        apt-get remove -y certbot
-        echo "Installing Certbot via pip..."
-        apt-get install -y libaugeas0
-        if ! [ -d "/opt/certbot" ]; then
-            echo "Certbot virtual environment does not exist, creating now..."
-            python3 -m venv /opt/certbot/
-        fi
-        /opt/certbot/bin/pip install --upgrade pip
-        /opt/certbot/bin/pip install certbot
-        ln -sf /opt/certbot/bin/certbot /usr/bin/certbot
+# Move self-signed certificates to an appropriate directory (e.g., /etc/ssl)
+echo "Self-signed certificate generated, moving certificates to /etc/ssl from working directory"
+mv cert.pem /etc/ssl/certs/selfsigned_cert.pem
+mv key.pem /etc/ssl/private/selfsigned_key.pem
 
-    echo "Configuring SSL with Let's Encrypt..."
-    SSL_CERT_PATH="/etc/letsencrypt/live/$SERVER_NAME/fullchain.pem"
-    SSL_KEY_PATH="/etc/letsencrypt/live/$SERVER_NAME/privkey.pem"
-    if [ -f "$SSL_CERT_PATH" ] && [ -f "$SSL_KEY_PATH" ]; then
-        echo "Certificates already exist, existing certificates will be imported"
-        echo "Calling certbot renew to ensure existing certificates are not expired"
-        certbot renew -q
-    else
-        if ! $ARGS_USED; then
-            read -p "Use Cloudflare DNS challenge instead of default HTTP challenge? [y/n, default n] : " -r -n 1
-            if handle_reply "$REPLY" "Calling certbot for credentials using HTTP challenge..." false; then
-                # User answered yes
-                USE_CLOUDFLARE=true
-                certbot_cf
-            else
-                # User answered no, install certbot nginx plugin
-                certbot_nginx
-            fi
-        else
-            # Args provided, use args to make decision
-            if $USE_CLOUDFLARE; then
-                certbot_cf
-            else
-                # No CF token provided, use HTTP challenge
-                certbot_nginx
-            fi
-        fi
-    fi
-
-    if ! $YES; then
-        read -p"SSL setup completed, set up automatic renewal and monthly certbot updates? [y/n, default y] : " -r -n 1
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            # User entered yes or
-            echo
-            echo "Adding automatic renewal and monthly certbot updates to /etc/crontab if they don't already exist"
-            add_auto_renewal
-        elif [ -z "$REPLY" ]; then
-            # User hit enter with no input or used -y arg
-            echo "Adding automatic renewal and monthly certbot updates to /etc/crontab if they don't already exist"
-            add_auto_renewal
-        elif [[ $REPLY =~ ^[Nn]$ ]]; then
-            echo
-            echo "Not setting up automatic renewal, please be mindful of certificate expiry, especially if this"\
-            "instance is exposed to the wide Internet"
-        else
-            echo
-            echo "Invalid input. Only y/n are accepted (case insensitive)" >&2
-            exit 1
-        fi
-    else
-        # -y was specified, just add auto renewal
-        echo "Adding automatic renewal and monthly certbot updates to /etc/crontab if they don't already exist"
-        add_auto_renewal
-    fi
-else
-    # Generate a self-signed certificate
-    echo "Generating self-signed certificate..."
-    openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -keyout key.pem -out cert.pem -days 3650 -nodes \
-    -subj "/CN=$SERVER_NAME"
-
-    # Move self-signed certificates to an appropriate directory (e.g., /etc/ssl)
-    echo "Self-signed certificate generated, moving certificates to /etc/ssl from working directory"
-    mv cert.pem /etc/ssl/certs/selfsigned_cert.pem
-    mv key.pem /etc/ssl/private/selfsigned_key.pem
-
-    # Update SSL paths in Flask app
-    SSL_CERT_PATH="/etc/ssl/certs/selfsigned_cert.pem"
-    SSL_KEY_PATH="/etc/ssl/private/selfsigned_key.pem"
-    echo "Self-signed SSL certificate generation complete."
-fi
+# Update SSL paths in Flask app
+SSL_CERT_PATH="/etc/ssl/certs/selfsigned_cert.pem"
+SSL_KEY_PATH="/etc/ssl/private/selfsigned_key.pem"
+echo "Self-signed SSL certificate generation complete."
 
 # Update SSL paths in Flask app
 sed -i "s|ssl_cert_path = .*|ssl_cert_path = '$SSL_CERT_PATH'|" app.py
