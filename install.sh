@@ -38,7 +38,7 @@ certbot_cf() {
     else
         # No valid pre-existing cloudflare.ini found
         if ! $ARGS_USED; then
-            read -rp "Cloudflare API token : " CF_TOKEN
+            read -p "Cloudflare API token : " CF_TOKEN -r
             if [ -z "$CF_TOKEN" ]; then
                 echo "No Cloudflare token supplied, cannot continue" >&2
                 exit 1
@@ -121,7 +121,8 @@ USE_CLOUDFLARE=false
 
 if [ $# -ne 0 ]; then
     # Only bother parsing args if an arg beside path is specified
-    if ! OPTS=$(getopt -o 'hyd:v:t:,c'\-l 'help,domain:,venv:,cloudflare-token:,--cloudflare' -n "$(basename "$0")" -- "$@"); then
+    if ! OPTS=$(getopt -o 'hyd:v:t:,c' -l 'help,domain:,venv:,cloudflare-token:,--cloudflare' \
+    -n "$(basename "$0")" -- "$@"); then
         echo "Failed to parse options" >&2
         print_help
         exit 1
@@ -174,8 +175,6 @@ if [ $# -ne 0 ]; then
     done
 fi
 
-
-
 if [ "$EUID" -ne 0 ]; then
     echo "Please run as root or with sudo" >&2
     exit 1
@@ -196,21 +195,21 @@ cd "$SCRIPT_PATH"
 
 if ! $ARGS_USED; then
     # Ask user if they want to use a domain or a self-signed certificate
-    read -rp "Enter the path for the python virtual environment [default: /opt/dcc-uploader] : "
+    read -p "Enter the path for the python virtual environment [default: /opt/dcc-uploader] : " -r
     VENV_PATH=${REPLY:-/opt/dcc-uploader}
 fi
 
-if ! ARGS_USED; then
+if ! $ARGS_USED; then
     # Initiate server name to hostname in case user selects N. Needed for handle_reply.
     SERVER_NAME=$(hostname -f)
 
-    read -rp -n 1 "Do you want to use a domain with Let's Encrypt? Defaults to self signed [y/n, default: n]: "
+    read -p "Do you want to use a domain with Let's Encrypt? Defaults to self signed [y/n, default: n]: " -n 1 -r
 
     if handle_reply "$REPLY" "Using self-signed certificate for server name: $SERVER_NAME" false; then
         # User chooses to use a domain
         echo "Info: If a Let's Encrypt certificate for the requested domain already exists, it will be imported"\
         "instead of creating a new certificate"
-        read -rp "Enter the fully qualified domain name for the server for Let's Encrypt : " SERVER_NAME
+        read -p "Enter the fully qualified domain name for the server for Let's Encrypt : " SERVER_NAME -r
         USE_DOMAIN=true
     else
         # User chooses to use a self-signed certificate
@@ -218,12 +217,13 @@ if ! ARGS_USED; then
     fi
 else
     # Args provided, check if domain is set.
-    if [ -z "SERVER_NAME" ]; then
+    if [ -z "$SERVER_NAME" ]; then
         # No domain name was provided in the args. Assume self-signed
         USE_DOMAIN=false
     else
         # Some domain name was provided (validation done next). Assume SSL
         USE_DOMAIN=true
+    fi
 fi
 
 # Domain name validation if SSL is being used
@@ -242,6 +242,8 @@ VENV_PATH=$(realpath -s "$VENV_PATH")
 
 # Add the PPA repository if not already added
 if ! [ -f /etc/apt/sources.list.d/wahibre-ubuntu-mtn-noble.sources ]; then
+    apt-get update
+    apt-get install -y software-properties-common
     echo "Movie thumbnailer repo not detected in apt source, adding"
     add-apt-repository -y ppa:wahibre/mtn
 fi
@@ -251,7 +253,7 @@ apt-get update
 
 # Required packages
 echo "Installing required tools and their dependencies..."
-apt-get install build-essential mtn mediainfo libfuse-dev screen software-properties-common autoconf -y
+apt-get install -y build-essential mtn mediainfo libfuse-dev screen autoconf
 
 # Install rar2fs
 if [[ ! -f /usr/local/bin/rar2fs ]]; then
@@ -313,7 +315,7 @@ if [ -d "$VENV_PATH" ]; then
     fi
     if ! $YES; then
         # Only ask for user warning confirmation if they didn't specify -y
-        read -rp -n 1 "Warning: virtual environment already exists, continue? [y/n, default: n] : "
+        read -p "Warning: virtual environment already exists, continue? [y/n, default: n] : " -r -n 1
         if ! handle_reply "$REPLY" "Aborting install" true; then
             exit 1
         fi
@@ -353,7 +355,7 @@ if $USE_DOMAIN; then
     # Install Certbot and configure SSL with Let's Encrypt
         echo "Uninstalling any certbot instances installed via apt"
         if ! $YES; then
-            read -rp -n 1 "Ready to uninstall any certbot instances installed from apt? [y/n, default n] : "
+            read -p "Ready to uninstall any certbot instances installed from apt? [y/n, default n] : " -r -n 1
             if ! handle_reply "$REPLY" "User did not want to uninstall existing certbot, aborting" true; then
                 exit 1
             fi
@@ -379,8 +381,7 @@ if $USE_DOMAIN; then
         certbot renew -q
     else
         if ! $ARGS_USED; then
-            read -rp -n 1 \
-            "Would you like to use Cloudflare DNS challenge instead of the default HTTP challenge? [y/n, default n] : "
+            read -p "Use Cloudflare DNS challenge instead of default HTTP challenge? [y/n, default n] : " -r -n 1
             if handle_reply "$REPLY" "Calling certbot for credentials using HTTP challenge..." false; then
                 # User answered yes
                 USE_CLOUDFLARE=true
@@ -404,8 +405,7 @@ if $USE_DOMAIN; then
     fi
 
     if ! $YES; then
-        read -rp -n 1 \
-        "SSL setup completed, set up automatic renewal and monthly certbot updates? [y/n, default y] : "
+        read -p"SSL setup completed, set up automatic renewal and monthly certbot updates? [y/n, default y] : " -r -n 1
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             # User entered yes or
             echo
