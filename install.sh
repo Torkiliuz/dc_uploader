@@ -42,6 +42,9 @@ certbot_cf() {
             if [ -z "$CF_TOKEN" ]; then
                 echo "No Cloudflare token supplied, cannot continue" >&2
                 exit 1
+            elif [ "${#CF_TOKEN}" -ne 40 ]; then
+                echo "Provided token is not long enough to be a valid token" >&2
+                exit 1
             fi
         else
             # Check to see if user provided a token when using arg mode.
@@ -51,7 +54,7 @@ certbot_cf() {
                 exit 1
             fi
         fi
-        mkdir /root/.secrets/
+        mkdir -p /root/.secrets/
         touch /root/.secrets/cloudflare.ini
         echo "dns_cloudflare_api_token = $CF_TOKEN" | tee /root/.secrets/cloudflare.ini
         chmod 0700 /root/.secrets/
@@ -157,6 +160,10 @@ if [ $# -ne 0 ]; then
                 ;;
             -t | --cloudflare-token)
                 CF_TOKEN="$2"
+                if [ "${#CF_TOKEN}" -ne 40 ]; then
+                    echo "Provided token is not long enough to be a valid token" >&2
+                    exit 1
+                fi
                 USE_CLOUDFLARE=true
                 ARGS_USED=true
                 shift 2
