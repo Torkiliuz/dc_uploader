@@ -469,4 +469,5 @@ sed -i "s/^hostname = .*/hostname = $SERVER_NAME/" config.ini
 
 echo "Setup complete. Start web server by executing start.sh, and make your first upload with upload.sh!"
 echo "Web app can be shutdown with shutdown.sh"
+echo "If you are exposing the web app to the wider Internet, update config.ini to a more secure username/password"
 echo "Note: web app does not need to be running to upload, its usage is entirely optional"

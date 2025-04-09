@@ -23,7 +23,13 @@ A simple python tool built for ubuntu to create and upload torrents. Debian is u
 
 2. Unzip to desired directory.
 
-3. Run install.sh, an interactive install script which will install the necessary packages and python virtual environments.
+3. Run install.sh, which will install the necessary packages and python virtual environments. Run `install.sh -h` or `install.sh --help` for help. install.sh can be run either as an interactive install script, or be provided with the following arguments:
+   - -y: Answer yes to all warnings 
+   - -d, --domain: Fully qualified domain name (e.g. hostname.domain.tld) you wish to use for the web app. If provided, uses certbot to request certificates from Let's Encrypt. Default if not provided: self-signed 
+   - -v, --venv: Path where virtual environment is install to. Default if not provided: /opt/dcc-uploader 
+   - -c, --cloudflare: Use cloudflare DNS challenge if you want to use Cloudflare DNS challenge instead of HTTP challenge. Will automatically install certbot cloudflare plugins. 
+   - -t, --cloudflare-token: Cloudflare API token to use for Cloudflare DNS challenge. If a token is provided, -c/--cloudflare is automatically assumed and user does not need to provide that argument. Token will be stored in /root/.secrets/cloudflare.ini post-install. Attempts to re-use token found in cloudflare.ini if -c/--cloudflare is set but no token is provided. 
+     - Providing a Cloudflare API token when one already exists in /root/.secrets/cloudflare.ini will result in the existing one being used, and the provided one ignored. If you wish to update the token in cloudflare.ini, you must do so manually.
 
 4. Modify config.ini with at least the following information. Web server will not start if the directories for these settings do not exist. The rest can be set via the web UI.
     - ETORFPATH
@@ -40,6 +46,9 @@ A simple python tool built for ubuntu to create and upload torrents. Debian is u
 
 Here are some important settings you can find in the config.ini. Do not change the headers or location of the settings.
 
+- user: If you are exposing the web app to the wider Internet, you should choose a more secure username.
+- password: If you are exposing the web app to the wider Internet, you absolutely must choose a more secure password.
+- port: If you want to run the web app on a different port than 5000.
 - CAPTCHA_PASSKEY: This is your passkey for the site.
 - ETORFPATH: directory where .torrent files from source torrent site are downloaded to. If you are rehashing new .torrent files when you upload (e.g. EDIT_TORRENT is set to false), this directory is largely irrelevant and can be set to a dummy directory.
     - If EDIT_TORRENT is set to true, it will edit the torrent instead of creating a new one, which saves time.
@@ -58,7 +67,7 @@ IGDB:
 
 ## Usage
 
-start.sh will start the web server on the specified port specified during install. Starts in a detatched screen session named "dcc-uploader".
+start.sh will start the web server on the specified port specified during install. Starts in a detatched screen session named "dcc-uploader". Web app is not necessary - you can never start it and use this tool entirely from the command line via `upload.sh`
 
 shutdown.sh shuts down the web server and ends the screen session.
 
