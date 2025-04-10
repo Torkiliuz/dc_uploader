@@ -11,11 +11,11 @@ check() {
         if [[ "$1" == "$REQUIRED_KEY" ]]; then
             if [[ -z "$2" ]]; then
                 if [ "$1" == "APIKEY" ]; then
-                    echo -e "${YELLOW}Warning${NOCOLOR}: TMDB API key not set, will not be able to get IMDB information"
+                    echo -e "${YLW}Warning${NCL}: TMDB API key not set, will not be able to get IMDB information"
                 elif [ "$1" == "CLIENT_ID" ] || [ "$1" == "CLIENT_SECRET" ]; then
-                    echo -e "${YELLOW}Warning${NOCOLOR}: IGDB $1 not set, will not be able to get video game information"
+                    echo -e "${YLW}Warning${NCL}: IGDB $1 not set, will not be able to get video game information"
                 else
-                    echo -e "${RED}Fatal${NOCOLOR}: $1 must not be empty"
+                    echo -e "${RED}Fatal${NCL}: $1 must not be empty"
                     FATAL_ERROR=true
                 fi
             fi
@@ -25,8 +25,8 @@ check() {
 
 # Pretty colors
 RED='\033[0;31m'
-YELLOW='\033[1;33m'
-NOCOLOR='\033[0m'
+YLW='\033[1;33m'
+NCL='\033[0m'
 
 FULL_SCRIPT_NAME=$(readlink -f "${BASH_SOURCE[0]}")
 SCRIPT_NAME="${FULL_SCRIPT_NAME##*/}"

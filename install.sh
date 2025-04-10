@@ -12,7 +12,7 @@ set -e
 
 # Pretty colors
 RED='\033[0;31m'
-NOCOLOR='\033[0m'
+NCL='\033[0m'
 
 # Set default values if not provided
 HOSTNAME="$(hostname -f)"
@@ -22,7 +22,7 @@ SCRIPT_NAME="${FULL_SCRIPT_NAME##*/}"
 if [ $# -ne 0 ]; then
     # Only bother parsing args if an arg beside path is specified
     if ! OPTS=$(getopt -o 'hd:' -l 'help,domain:' -n "$SCRIPT_NAME" -- "$@"); then
-        echo -e "${RED}ERROR: Failed to parse options. See --help.${NOCOLOR}" >&2
+        echo -e "${RED}ERROR: Failed to parse options. See --help.${NCL}" >&2
         exit 1
     fi
     # Reset the positional parameters to the parsed options
@@ -45,7 +45,7 @@ if [ $# -ne 0 ]; then
                 break
                 ;;
             *)
-                echo -e "${RED}Error: Unrecognized argument${NOCOLOR}" >&2
+                echo -e "${RED}Error: Unrecognized argument${NCL}" >&2
                 print_help
                 exit 1
                 ;;
@@ -55,14 +55,14 @@ fi
 
 
 if [ "$EUID" -ne 0 ]; then
-    echo -e "${RED}Please run as root or with sudo.${NOCOLOR}" >&2
+    echo -e "${RED}Please run as root or with sudo.${NCL}" >&2
     exit 1
 fi
 
 . /etc/os-release
 
 if [ "$ID" != "ubuntu" ]; then
-    echo -e "${RED}ERROR: This program was only built for ubuntu, aborting install.${NOCOLOR}" >&2
+    echo -e "${RED}ERROR: This program was only built for ubuntu, aborting install.${NCL}" >&2
     exit 1
 fi
 
@@ -80,7 +80,7 @@ fi
 # Domain name validation if an actual domain is being used
 if [ "$SERVER_NAME" != "$HOSTNAME" ]; then
     if ! echo "$SERVER_NAME" | grep -qP '(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}$)'; then
-        echo -e "${RED}Error: Invalid domain name provided${NOCOLOR}" >&2
+        echo -e "${RED}Error: Invalid domain name provided${NCL}" >&2
         exit 1
     fi
 fi
@@ -160,7 +160,7 @@ echo "Initializing databases..."
 if "venv/bin/python3" utils/database_utils.py initialize_all_databases; then
     echo "Databases created successfully."
 else
-    echo -e "${RED}Error: Couldn't initialize databases${NOCOLOR}" >&2
+    echo -e "${RED}Error: Couldn't initialize databases${NCL}" >&2
     exit 1
 fi
 
@@ -192,5 +192,5 @@ sed -i "s/^hostname = .*/hostname = $SERVER_NAME/" config.ini
 echo "Setup complete. Start web server by executing start.sh, and make your first upload with upload.sh!"
 echo "Web app can be shutdown with shutdown.sh"
 echo -e "${RED}If you are exposing the web app to the wider Internet, update config.ini to a more secure" \
-"username/password${NOCOLOR}"
+"username/password${NCL}"
 echo "Note: web app does not need to be running to upload, its usage is entirely optional"
