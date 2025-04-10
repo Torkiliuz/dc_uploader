@@ -23,24 +23,12 @@ A simple python tool built for ubuntu to create and upload torrents. Debian is u
 
 2. Unzip to desired directory.
 
-3. Run install.sh, which will install the necessary packages and python virtual environments. Run `install.sh -h` or `install.sh --help` for help. install.sh can be run either as an interactive install script, or be provided with the following arguments:
-   - -y: Answer yes to all warnings 
-   - -d, --domain: Fully qualified domain name (e.g. hostname.domain.tld) you wish to use for the web app. If provided, uses certbot to request certificates from Let's Encrypt. Default if not provided: self-signed 
-   - -v, --venv: Path where virtual environment is install to. Default if not provided: /opt/dcc-uploader 
-   - -c, --cloudflare: Use cloudflare DNS challenge if you want to use Cloudflare DNS challenge instead of HTTP challenge. Will automatically install certbot cloudflare plugins. 
-   - -t, --cloudflare-token: Cloudflare API token to use for Cloudflare DNS challenge. If a token is provided, -c/--cloudflare is automatically assumed and user does not need to provide that argument. Token will be stored in /root/.secrets/cloudflare.ini post-install. Attempts to re-use token found in cloudflare.ini if -c/--cloudflare is set but no token is provided. 
-     - Providing a Cloudflare API token when one already exists in /root/.secrets/cloudflare.ini will result in the existing one being used, and the provided one ignored. If you wish to update the token in cloudflare.ini, you must do so manually.
+3. Run install.sh, which will install the necessary packages and python virtual environments. Run `install.sh -h` or `install.sh --help` for help. Running install.sh with no arguments will install in interactive mode, but the only thing the script will ask for is a domain name. The domain name can be provided with args:
+   - `install.sh -d [fully qualified domain name]` or 
+   - `install.sh --domain [fully qualified domain name]`
 
-4. Modify config.ini with at least the following information. Web server will not start if the directories for these settings do not exist. The rest can be set via the web UI.
-    - ETORFPATH
-    - DATADIR
-    - WATCHFOLDER
-
-5. Run start.sh
-6. Navigate to https://[hostname.domain]:5000, assuming you used the default port. If you specified a different port during install, use that.
-7. Login with your specified username/password
-8. Update the relevant settings as needed
-9. You're ready to upload now!
+4. Modify config.ini with required settings
+5. You're done.
 
 ### Important config.ini settings
 
@@ -102,9 +90,18 @@ Following arguments are primarily used when user is using discrete directories.
 
 ### Web app usage
 
-Ensure DATADIR is set properly in the config.ini. Then, just click "upload".
+Note: Web app usage is entirely optional. The upload tool can be used entirely from the command line.
 
-If using discrete directories, web app requires users to manually copy/hardlink/symlink/move to DATADIR. Hopefully future versions will automate the copy/hardlink/symlink process when using discrete directory. 
+1. Modify config.ini with at least the following information. Web app will not start if the directories for these settings do not exist. The rest can be set via the UI.
+    - ETORFPATH
+    - DATADIR
+    - WATCHFOLDER
+2. Run start.sh 
+3. Navigate to https://[hostname.domain]:5000, assuming you used the default port. If you specified a different port during install, use that. If it's just running locally, localhost:5000 will work as well - the app binds to 0.0.0.0 
+4. Login with username/password found in config.ini (default: admin/p@ssword)
+5. Update the relevant settings as needed
+
+If using discrete directories, web app requires users to manually copy/hardlink/symlink/move to DATADIR. Hopefully future versions will automate the copy/hardlink/symlink process when using discrete directory.
 
 ## Discrete directories
 
@@ -126,21 +123,19 @@ Now, you set DATADIR to /data/uploads, and --link,--copy, or --mv become non-opt
 
 The alternative is to update config.ini's DATADIR every time you want to upload from a different directory, but who wants to do that?
 
-## Uninstall
+## Uninstall :(
 
-To remove just the program, simply delete the program folder.
+To remove just the program, simply delete the program folder. The python virtual environment is inside this folder, so don't worry about removing it manually
 
-To remove the python virtual environment, simply delete the virtual environment folder specified during install
+To remove the dependencies installed via apt, run apt remove. ***For the love of god please don't blindly copy this apt command*** - double check if there are things that you don't want to uninstall, especially fuse3.
 
-To remove the dependencies installed via apt, run:
-
-`apt remove build-essential mtn mediainfo libfuse-dev screen software-properties-common autoconf && apt autoremove -y`
+`apt remove build-essential mtn mediainfo fuse3 libfuse-dev screen software-properties-common autoconf && apt autoremove -y`
 
 To remove rar2fs:
 
 `rm /usr/local/bin/rar2fs`
 
-
+Any installed repo's besides the standard apt repo's are stored in `/etc/apt/sources.list.d`
 
 ## FAQ
 
