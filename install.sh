@@ -1,9 +1,8 @@
 #!/bin/bash
 
 print_help() {
-    echo "Script usage: $(basename "$0") [OPTION]"
+    echo "Script usage: $SCRIPT_NAME [OPTION]"
     echo "Optional arguments:"
-    echo
     echo "-d, --domain: Fully qualified domain name (e.g. hostname.domain.tld) you wish to use for the web app."
     echo
     echo "-h, --help: Show this help page"
@@ -11,19 +10,19 @@ print_help() {
 
 set -e
 
-# Function to check if a command exists
-command_exists() {
-    command -v "$1" &> /dev/null
-}
+# Pretty colors
+RED='\033[0;31m'
+NOCOLOR='\033[0m'
 
 # Set default values if not provided
 HOSTNAME="$(hostname -f)"
+FULL_SCRIPT_NAME=$(readlink -f "${BASH_SOURCE[0]}")
+SCRIPT_NAME="${FULL_SCRIPT_NAME##*/}"
 
 if [ $# -ne 0 ]; then
     # Only bother parsing args if an arg beside path is specified
-    if ! OPTS=$(getopt -o 'hd:' -l 'help,domain:' -n "$(basename "$0")" -- "$@"); then
-        echo "Failed to parse options" >&2
-        print_help
+    if ! OPTS=$(getopt -o 'hd:' -l 'help,domain:' -n "$SCRIPT_NAME" -- "$@"); then
+        echo -e "${RED}ERROR: Failed to parse options. See --help.${NOCOLOR}" >&2
         exit 1
     fi
     # Reset the positional parameters to the parsed options
@@ -46,7 +45,7 @@ if [ $# -ne 0 ]; then
                 break
                 ;;
             *)
-                echo "Unrecognized argument" >&2
+                echo -e "${RED}Error: Unrecognized argument${NOCOLOR}" >&2
                 print_help
                 exit 1
                 ;;
@@ -56,14 +55,14 @@ fi
 
 
 if [ "$EUID" -ne 0 ]; then
-    echo "Please run as root or with sudo" >&2
+    echo -e "${RED}Please run as root or with sudo.${NOCOLOR}" >&2
     exit 1
 fi
 
 . /etc/os-release
 
 if [ "$ID" != "ubuntu" ]; then
-    echo "This program was only built for ubuntu, aborting install" >&2
+    echo -e "${RED}ERROR: This program was only built for ubuntu, aborting install.${NOCOLOR}" >&2
     exit 1
 fi
 
@@ -81,7 +80,7 @@ fi
 # Domain name validation if an actual domain is being used
 if [ "$SERVER_NAME" != "$HOSTNAME" ]; then
     if ! echo "$SERVER_NAME" | grep -qP '(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}$)'; then
-        echo "Invalid domain name provided." >&2
+        echo -e "${RED}Error: Invalid domain name provided${NOCOLOR}" >&2
         exit 1
     fi
 fi
@@ -161,7 +160,7 @@ echo "Initializing databases..."
 if "venv/bin/python3" utils/database_utils.py initialize_all_databases; then
     echo "Databases created successfully."
 else
-    echo "Error occurred while creating databases." >&2
+    echo -e "${RED}Error: Couldn't initialize databases${NOCOLOR}" >&2
     exit 1
 fi
 
@@ -192,5 +191,6 @@ sed -i "s/^hostname = .*/hostname = $SERVER_NAME/" config.ini
 
 echo "Setup complete. Start web server by executing start.sh, and make your first upload with upload.sh!"
 echo "Web app can be shutdown with shutdown.sh"
-echo "If you are exposing the web app to the wider Internet, update config.ini to a more secure username/password"
+echo -e "${RED}If you are exposing the web app to the wider Internet, update config.ini to a more secure" \
+"username/password${NOCOLOR}"
 echo "Note: web app does not need to be running to upload, its usage is entirely optional"
