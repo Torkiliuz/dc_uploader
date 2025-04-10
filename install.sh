@@ -146,10 +146,11 @@ echo "Installing Python packages in virtual environment..."
 "venv/bin/pip3" install --upgrade pip
 "venv/bin/pip3" install --upgrade -r requirements.txt
 
-# Ensure user scripts are executable
+# Ensure scripts are executable
 chmod +x start.sh
 chmod +x shutdown.sh
 chmod +x upload.sh
+chmod +x utils/config_validator.sh
 
 echo "Initiating polar bear attack (do you guys actually read these messages?)"
 
