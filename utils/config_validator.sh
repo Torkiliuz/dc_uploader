@@ -28,7 +28,7 @@ RED='\033[0;31m'
 YLW='\033[1;33m'
 NCL='\033[0m'
 
-FULL_SCRIPT_NAME=$(readlink -f "${BASH_SOURCE[0]}")
+FULL_SCRIPT_NAME="$(readlink -f "${BASH_SOURCE[0]}")"
 ROOT_DIR="${FULL_SCRIPT_NAME%/*}/.."
 SCRIPT_NAME="${FULL_SCRIPT_NAME##*/}"
 if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
