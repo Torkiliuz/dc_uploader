@@ -17,7 +17,7 @@ NCL='\033[0m'
 
 # Set default values if not provided
 HOSTNAME="$(hostname -f)"
-FULL_SCRIPT_NAME=$(readlink -f "${BASH_SOURCE[0]}")
+FULL_SCRIPT_NAME="$(readlink -f "${BASH_SOURCE[0]}")"
 SCRIPT_NAME="${FULL_SCRIPT_NAME##*/}"
 
 if [ $# -ne 0 ]; then
