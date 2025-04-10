@@ -117,19 +117,16 @@ def create_torrent(directory, temp_dir):
             reused_torrent.private = True
             Torrent.copy(reused_torrent).write(f"{shlex.quote(str(torrent_file))}", overwrite=True)
     else:
-        print(f"\033[36mCreate torrent file.. {torrent_file}\n\033[0m")
-        new_torrent = Torrent(path=f"{shlex.quote(str(directory_path))}",
-                              name=f"{directory_path.name}",
-                              trackers=[f"{shlex.quote(announceurl)}"],
-                              source=f"{shlex.quote(esource)}",
-                              created_by=f"{shlex.quote(creator)}",
-                              comment=f"{shlex.quote(ecomment)}",
-                              randomize_infohash=True,
-                              private=True,
-                              piece_size_max=piece_size * 1048576)
-
         try:
-            # Temporarily store the CustomOutput version of stdout
+            new_torrent = Torrent(path=f"{shlex.quote(str(directory_path))}",
+                                  name=f"{directory_path.name}",
+                                  trackers=[f"{shlex.quote(announceurl)}"],
+                                  source=f"{shlex.quote(esource)}",
+                                  created_by=f"{shlex.quote(creator)}",
+                                  comment=f"{shlex.quote(ecomment)}",
+                                  randomize_infohash=True,
+                                  private=True,
+                                  piece_size_max=piece_size * 1048576)
             if new_torrent.generate(callback=torf_cb, interval=5):
                 new_torrent.write(f"{shlex.quote(str(torrent_file))}", overwrite=True)
                 log_to_file(temp_dir_path / 'create_torrent_output.log',
