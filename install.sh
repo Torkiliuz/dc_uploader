@@ -2,10 +2,11 @@
 
 print_help() {
     echo "Script usage: $SCRIPT_NAME [OPTION]"
-    echo "Optional arguments:"
-    echo "-d, --domain: Fully qualified domain name (e.g. hostname.domain.tld) you wish to use for the web app."
     echo
-    echo "-h, --help: Show this help page"
+    echo "Optional arguments:"
+    echo "    -d, --domain: Fully qualified domain name (e.g. hostname.domain.tld) you wish to use for the web app."
+    echo
+    echo "    -h, --help: Show this help page"
 }
 
 set -e

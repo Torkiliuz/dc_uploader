@@ -2,7 +2,7 @@ print_help() {
     echo "Script usage: $SCRIPT_NAME [OPTION]"
     echo "Validates your config.ini to ensure the bare minimum arguments for uploading is met"
     echo
-    echo "-h, --help: Show this help page"
+    echo "    -h, --help: Show this help page"
     exit 0
 }
 
