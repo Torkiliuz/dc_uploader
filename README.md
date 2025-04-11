@@ -23,7 +23,7 @@ A simple python tool built for ubuntu to create and upload torrents. Debian is u
 
 2. Unzip to desired directory.
 
-3. cd into the unzipped directory
+3. cd into the unzipped directory (not strictly necessary, but allows you to call install with just `./install.sh`)
 
 4. Run install.sh, which will install the necessary packages and python virtual environments. Run `install.sh -h` or `install.sh --help` for help. Running install.sh with no arguments will install in interactive mode, but the only thing the script will ask for is a domain name. The domain name can be provided with args:
    - `install.sh -d [fully qualified domain name]` or 
