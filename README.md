@@ -132,7 +132,7 @@ shutdown.sh shuts down the web server and ends the screen session.
 
 If using discrete directories, web app requires users to manually copy/hardlink/symlink/move to DATADIR. Hopefully future versions will automate the copy/hardlink/symlink process when using discrete directory.
 
-You can connect to the screen session with `screen -r dc-uploader`. Detatch from the screen with `CTRL A` then `D`.
+You can connect to the screen session with `screen -r dc-uploader`. Detatch from the screen with `CTRL + A` then `D`.
 
 ## Discrete directories
 
@@ -190,7 +190,7 @@ etc.
 
 Essentially, just add `screen -dmS [SCREEN_NAME]` to the start of your command and it'll execute that command in a detached screen. The screen will automatically terminate once the command finishes. You can omit the `S [SCREEN_NAME]` if you don't want to name your screen.
 
-`screen -ls` to list all your screen sessions.
+`screen -ls` to list all your screen sessions and that the screen you just created is actually running.  Do be careful to know that if there is an error in running the requested command, the detached screen immediately terminates, since the command exited, and it will NOT print any errors. When in doubt, run the screen command in attached mode first by omitting the `d` argument, then detaching with `CTRL + A` then `D`.
 
 #### Q: After my torrent is uploaded, where does the actual torrent in the client expect the data to be?
 
