@@ -92,9 +92,9 @@ def create_torrent(directory, temp_dir):
         else:
             print(f"### Found existing torrent. {torrent_file}")
             # Now edit the torrent as an object
-            reused_torrent.trackers = [f"{shlex.quote(announceurl)}"]
-            reused_torrent.comment = f"{shlex.quote(ecomment)}"
-            reused_torrent.created_by = f"{shlex.quote(creator)}"
+            reused_torrent.trackers = [announceurl]
+            reused_torrent.comment = ecomment
+            reused_torrent.created_by = creator
 
             info_dict = reused_torrent.metainfo['info']
             valid_keys = ['name', 'piece length', 'pieces', 'private', 'source']
@@ -118,12 +118,12 @@ def create_torrent(directory, temp_dir):
             Torrent.copy(reused_torrent).write(f"{shlex.quote(str(torrent_file))}", overwrite=True)
     else:
         try:
-            new_torrent = Torrent(path=f"{shlex.quote(str(directory_path))}",
-                                  name=f"{directory_path.name}",
-                                  trackers=[f"{shlex.quote(announceurl)}"],
-                                  source=f"{shlex.quote(esource)}",
-                                  created_by=f"{shlex.quote(creator)}",
-                                  comment=f"{shlex.quote(ecomment)}",
+            new_torrent = Torrent(path=str(directory_path),
+                                  name=directory_path.name,
+                                  trackers=[announceurl],
+                                  source=esource,
+                                  created_by=creator,
+                                  comment=ecomment,
                                   randomize_infohash=True,
                                   private=True,
                                   piece_size_max=piece_size * 1048576)
