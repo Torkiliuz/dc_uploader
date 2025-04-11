@@ -1,11 +1,3 @@
-print_help() {
-    echo "Script usage: $SCRIPT_NAME [OPTION]"
-    echo "Validates your config.ini to ensure the bare minimum arguments for uploading is met"
-    echo
-    echo "    -h, --help: Show this help page"
-    exit 0
-}
-
 check() {
     for REQUIRED_KEY in "${REQUIRED_KEYS[@]}"; do
         if [[ "$1" == "$REQUIRED_KEY" ]]; then
@@ -31,12 +23,6 @@ NCL='\033[0m'
 FULL_SCRIPT_NAME="$(readlink -f "${BASH_SOURCE[0]}")"
 ROOT_DIR="${FULL_SCRIPT_NAME%/*}/.."
 SCRIPT_NAME="${FULL_SCRIPT_NAME##*/}"
-if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
-    print_help
-elif [ -n "$1" ]; then
-    echo "ERROR: Unrecognized argument" >&2
-    exit 1
-fi
 
 # Keys that require user to set them
 REQUIRED_KEYS=\

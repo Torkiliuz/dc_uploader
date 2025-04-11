@@ -21,7 +21,27 @@ FULL_SCRIPT_NAME="$(readlink -f "${BASH_SOURCE[0]}")"
 SCRIPT_NAME="${FULL_SCRIPT_NAME##*/}"
 
 if [ $# -ne 0 ]; then
-    # Only bother parsing args if an arg beside path is specified
+    if [ $# -gt 1 ]; then
+        if [ "$1" != "-d" ] && [ "$1" != "--domain" ]; then
+            echo -e "${RED}ERROR: Too many args. The only argument this script takes is -d/--domain. See --help.${NCL}" >&2
+            exit 1
+        fi
+    fi
+
+    VALID_ARGS=("-h" "--help" "-d" "--domain")
+    FOUND=false
+
+    for item in "${VALID_ARGS[@]}"; do
+        if [[ "$item" == "$1" ]]; then
+            FOUND=true
+            break
+        fi
+    done
+    if ! $FOUND; then
+        echo -e "${RED}Error: Unrecognized argument: $1${NCL}" >&2
+        exit 1
+    fi
+
     if ! OPTS=$(getopt -o 'hd:' -l 'help,domain:' -n "$SCRIPT_NAME" -- "$@"); then
         echo -e "${RED}ERROR: Failed to parse options. See --help.${NCL}" >&2
         exit 1

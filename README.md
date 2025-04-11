@@ -23,11 +23,15 @@ A simple python tool built for ubuntu to create and upload torrents. Debian is u
 
 2. Unzip to desired directory.
 
-3. Run install.sh, which will install the necessary packages and python virtual environments. Run `install.sh -h` or `install.sh --help` for help. Running install.sh with no arguments will install in interactive mode, but the only thing the script will ask for is a domain name. The domain name can be provided with args:
+3. cd into the unzipped directory
+
+4. Run `chmod +x install.sh` to make install script executable
+
+5. Run install.sh, which will install the necessary packages and python virtual environments. Run `install.sh -h` or `install.sh --help` for help. Running install.sh with no arguments will install in interactive mode, but the only thing the script will ask for is a domain name. The domain name can be provided with args:
    - `install.sh -d [fully qualified domain name]` or 
    - `install.sh --domain [fully qualified domain name]`
 
-4. Modify config.ini with required settings:
+6. Modify config.ini with required settings:
     - USERNAME
     - PASSWORD
     - CAPTCHA_PASSKEY
@@ -39,7 +43,7 @@ A simple python tool built for ubuntu to create and upload torrents. Debian is u
     - ANNOUNCEURL
     - WATCHFOLDER
     - DATADIR
-5. You're done.
+7. You're done.
 
 ### config.ini settings
 
@@ -59,7 +63,7 @@ Do not change the headers or location of the settings. If it is not mentioned be
     - If EDIT_TORRENT is set to true, it will edit the torrent instead of creating a new one, which saves time.
 - ANNOUNCEURL: Your personal announce URL.
 - WATCHFOLDER: Path to the directory where .torrent file for the uploaded torrent is placed for the client to import, e.g., /uploaders/torrentwatch.
-- DATADIR: Path to where the downloaded torrent data is stored, e.g., /uploaders/complete. If you like to sort your downloads into tracker/category/etc specific directory (e.g. due to using an *arr stack), see [discrete directories](https://github.com/FinHv/dc_uploader/new/main?filename=README.md#discrete-directories).
+- DATADIR: Path to where the downloaded torrent data is stored, e.g., /uploaders/complete. If you like to sort your downloads into tracker/category/etc specific directory (e.g. due to using an *arr stack), see [discrete directories](https://github.com/FinHv/dc_uploader/tree/main?tab=readme-ov-file#discrete-directories).
 
 TMDB:
 - See [here](https://developer.themoviedb.org/docs/getting-started#:~:text=To%20register%20for%20an%20API,to%20our%20terms%20of%20use.) on how to get an API key.
@@ -87,7 +91,7 @@ The DATADIR would be /home/torrentdata
 
 You would run: `upload.sh "/home/torrentdata/tracker1/this.is.a.nice.movie-grp"`
 
-By default, the program assumes that the data to be uploaded already exists in DATADIR. See [discrete directories](https://github.com/FinHv/dc_uploader/new/main?filename=README.md#discrete-directories) if you want to upload directories that are outside DATADIR.
+By default, the program assumes that the data to be uploaded already exists in DATADIR. See [discrete directories](https://github.com/FinHv/dc_uploader/tree/main?tab=readme-ov-file#discrete-directories) if you want to upload directories that are outside DATADIR.
 
 #### Optional arguments:
 -h, --help: Prints help. Called via `upload.sh -h` or `upload.sh --help`.
@@ -99,6 +103,18 @@ Following arguments are primarily used when user is using discrete directories.
 -c, --cp: Copies provided directory to DATADIR
 
 -m, --mv: Moves provided directory to DATADIR
+
+### Upload queue
+
+If you have many directories you want to upload at once, but don't want to manually run `upload.sh` so many times, use `queue_upload.sh`. Create a file and write the same directory path you'd normally use for `upload.sh`, with each directory on a separate line. Then, just call `queue_upload.sh [QUEUE FILE] [OPTION]`. 
+
+Use `queue_upload.sh` exactly the same as you would `upload.sh`, just that instead of providing a directory, you provide a queue file. The only difference is that link/copy/move argument is mandatory, not optional. Don't worry, if the directory already exists in DATADIR, the argument is ignore for that directory, as `upload.sh` is what is called under the hood and already has such checks.
+
+The queue file provided to `queue_upload.sh` can either be a full absolute path or a relative path relative to `queue_upload.sh`. e.g. `queue_upload.sh some_queue_file.txt [OPTION]` if queue file is located in the same folder as `queue_upload.sh`.
+
+If you want to see a log of what was successful during the last run, the success/failure of each queue item is logged in `files/queue_upload.log`. This log is overwritten each time `queue_upload.sh` is run.
+
+Since this might take a while, it might be a good idea to execute this as a detached screen. See [FAQ](https://github.com/FinHv/dc_uploader/tree/main?tab=readme-ov-file#faq).
 
 ### Web app usage
 
@@ -137,6 +153,15 @@ Now, you set DATADIR to `/data/uploads`, and --ln/cp/mv become non-optional argu
 
 The alternative is to update config.ini's DATADIR every time you want to upload from a different directory, but who wants to do that?
 
+## Permissions
+
+The install.sh script must be run as root, since it has to install prerequisites. The rest of the scripts can be run as a non-root user and without sudo, provided that the user running those scripts has read and write permissions to:
+
+- Program's entire root directory (e.g. dc_uploader)
+  - `chown -R [USER] dc_uploader` if you want to be sure, but usually not necessary if this is the same user that downloaded dc_uploader.
+- DATADIR
+- WATCHFOLDER
+
 ## Uninstall :(
 
 To remove just the program, simply delete the program folder. The python virtual environment is inside this folder, so don't worry about removing it manually
@@ -153,13 +178,27 @@ Any installed repo's besides the standard apt repo's are stored in `/etc/apt/sou
 
 ## FAQ
 
+#### Q: I don't want the script to take over my session, I have other stuff to do. What do I do?
+
+A: Luckily, screen is installed by the script! You can simply execute the command as a detached screen session:
+
+`screen -dmS [SCREEN_NAME] ./queue_upload.sh testqueue.txt --ln`
+
+`screen -dmS [SCREEN_NAME] ./upload.sh /some/directory/ --ln`
+
+etc.
+
+Essentially, just add `screen -dmS [SCREEN_NAME]` to the start of your command and it'll execute that command in a detached screen. The screen will automatically terminate once the command finishes. You can omit the `S [SCREEN_NAME]` if you don't want to name your screen.
+
+`screen -ls` to list all your screen sessions.
+
 #### Q: After my torrent is uploaded, where does the actual torrent in the client expect the data to be?
 
 A: This depends on how you set up the watch directory. By using a watch directory, the client adds the .torrent file to the client similar to a user adding a torrent, so it depends on how you've set your client up.
 
 #### Q: I use discrete directories, but I want to add it to a download-then-uploadToDCC automation pathway, how do I do that?
 
-A: Assuming you have created an upload directory as directed by the [discrete directories](https://github.com/FinHv/dc_uploader/new/main?filename=README.md#discrete-directories) section, just pass the torrent content path to upload.sh with one of the relevant arguments. The script is the one that handles the linking/copying/moving.
+A: Assuming you have created an upload directory as directed by the [discrete directories](https://github.com/FinHv/dc_uploader/tree/main?tab=readme-ov-file#discrete-directories) section, just pass the torrent content path to upload.sh with one of the relevant arguments. The script is the one that handles the linking/copying/moving.
 
 #### Q: What happens if I pass the script a file instead of a directory?
 
