@@ -78,7 +78,6 @@ def process_movie_files(directory, command_opts, screenshots_dir, is_rar2fs=Fals
     
     # Determine if there are any movie files in the root directory
     has_root_movie = len(root_files) > 0
-    print(f"Root directory has movie files: {has_root_movie}")
 
     # Collect all movie files recursively
     for ext in valid_movie_extension:

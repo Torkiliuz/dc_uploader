@@ -8,4 +8,7 @@ SCRIPT_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")" || exit ; pwd -P )
 
 cd "$SCRIPT_PATH" || exit
 
-screen -dmS dcc-uploader "venv/bin/python3" app.py
+if utils/config_validator.sh; then
+    # Only start if config validator returns on fatal errors
+    screen -dmS dc-uploader "venv/bin/python3" app.py
+fi
