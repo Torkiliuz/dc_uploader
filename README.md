@@ -25,13 +25,12 @@ A simple python tool built for ubuntu to create and upload torrents. Debian is u
 
 3. cd into the unzipped directory
 
-4. Run `chmod +x install.sh` to make install script executable
-
-5. Run install.sh, which will install the necessary packages and python virtual environments. Run `install.sh -h` or `install.sh --help` for help. Running install.sh with no arguments will install in interactive mode, but the only thing the script will ask for is a domain name. The domain name can be provided with args:
+4. Run install.sh, which will install the necessary packages and python virtual environments. Run `install.sh -h` or `install.sh --help` for help. Running install.sh with no arguments will install in interactive mode, but the only thing the script will ask for is a domain name. The domain name can be provided with args:
    - `install.sh -d [fully qualified domain name]` or 
    - `install.sh --domain [fully qualified domain name]`
+   - Run `chmod +x install.sh` to make install script executable if you're getting permission errors when trying to run `install.sh`
 
-6. Modify config.ini with required settings:
+5. Modify config.ini with required settings:
     - USERNAME
     - PASSWORD
     - CAPTCHA_PASSKEY
@@ -43,7 +42,7 @@ A simple python tool built for ubuntu to create and upload torrents. Debian is u
     - ANNOUNCEURL
     - WATCHFOLDER
     - DATADIR
-7. You're done.
+6. You're done.
 
 ### config.ini settings
 
