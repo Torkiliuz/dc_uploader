@@ -9,6 +9,10 @@ print_help() {
     echo "    -h, --help: Show this help page"
 }
 
+command_exists() {
+    command -v "$1" &> /dev/null
+}
+
 set -e
 
 # Pretty colors
@@ -82,8 +86,8 @@ fi
 
 . /etc/os-release
 
-if [ "$ID" != "ubuntu" ]; then
-    echo -e "${RED}ERROR: This program was only built for ubuntu, aborting install.${NCL}" >&2
+if [ "$ID" != "ubuntu" ] && [ "$ID" != "debian" ]; then
+    echo -e "${RED}ERROR: This program was only built for ubuntu/debian, aborting install.${NCL}" >&2
     exit 1
 fi
 
@@ -106,16 +110,30 @@ if [ "$SERVER_NAME" != "$HOSTNAME" ]; then
     fi
 fi
 
-# Add the PPA repository if not already added
-if ! [ -f /etc/apt/sources.list.d/wahibre-ubuntu-mtn-noble.sources ]; then
-    apt-get update
-    apt-get install -y software-properties-common
-    echo "Movie thumbnailer repo not detected in apt source, adding"
-    add-apt-repository -y ppa:wahibre/mtn
-fi
+apt update
 
-# Update to ensure newest versions are installed (assuming not already installed)
-apt-get update
+# If mtn isn't already installed, add it.
+if ! command_exists mtn; then
+    if [ "$ID" == "ubuntu" ]; then
+        apt-get install -y software-properties-common
+        echo "Movie thumbnailer repo not detected in apt source, adding"
+        add-apt-repository -y ppa:wahibre/mtn
+    elif [ "$ID" == "debian" ]; then
+        if [ "$VERSION_ID" -ge 9 ]; then
+            if [ "$VERSION_ID" -eq 9 ]; then
+                VERSION_ID="9.0"
+            fi
+            echo "deb http://download.opensuse.org/repositories/home:/movie_thumbnailer/Debian_$VERSION_ID/ /" | \
+                sudo tee /etc/apt/sources.list.d/home:movie_thumbnailer.list
+            curl -fsSL "https://download.opensuse.org/repositories/home:movie_thumbnailer/Debian_$VERSION_ID/Release.key" | \
+                gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/home_movie_thumbnailer.gpg > /dev/null
+        else
+            echo -e "${RED}$ID $VERSION_ID is not supported. Aborting.${NCL}" >&2
+            exit 1
+        fi
+    fi
+    apt-get update
+fi
 
 # Required packages
 echo "Installing required tools and their dependencies..."
