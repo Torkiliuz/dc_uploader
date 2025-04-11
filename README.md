@@ -104,7 +104,7 @@ Following arguments are primarily used when user is using discrete directories.
 
 Note: Web app usage is entirely optional. The upload tool can be used entirely from the command line.
 
-start.sh will start the web server on the specified port specified during install. Starts in a detatched screen session named "dcc-uploader". Web app is not necessary - you can never start it and use this tool entirely from the command line via `upload.sh`.
+start.sh will start the web server on the specified port specified during install. Starts in a detatched screen session named "dc-uploader". Web app is not necessary - you can never start it and use this tool entirely from the command line via `upload.sh`.
 
 shutdown.sh shuts down the web server and ends the screen session.
     
@@ -114,6 +114,8 @@ shutdown.sh shuts down the web server and ends the screen session.
 4. Update the relevant settings as needed.
 
 If using discrete directories, web app requires users to manually copy/hardlink/symlink/move to DATADIR. Hopefully future versions will automate the copy/hardlink/symlink process when using discrete directory.
+
+You can connect to the screen session with `screen -r dc-uploader`. Detatch from the screen with `CTRL A` then `D`.
 
 ## Discrete directories
 

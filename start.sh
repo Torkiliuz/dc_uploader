@@ -10,5 +10,5 @@ cd "$SCRIPT_PATH" || exit
 
 if utils/config_validator.sh; then
     # Only start if config validator returns on fatal errors
-    screen -dmS dcc-uploader "venv/bin/python3" app.py
+    screen -dmS dc-uploader "venv/bin/python3" app.py
 fi
