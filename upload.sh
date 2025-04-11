@@ -33,6 +33,9 @@ NCL='\033[0m'
 DATA_DIR="$(awk -F '=' '/^DATADIR[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2}' config.ini)"
 # In case user put in a trailing forward slash to DATADIR
 DATA_DIR=$(realpath -s "$DATA_DIR")
+WATCH_DIR="$(awk -F '=' '/^WATCHFOLDER[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2}' config.ini)"
+# In case user put in a trailing forward slash to DATADIR
+WATCH_DIR=$(realpath -s "$WATCH_DIR")
 DATA_PATH="$1"
 FULL_SCRIPT_NAME="$(readlink -f "${BASH_SOURCE[0]}")"
 SCRIPT_NAME="${FULL_SCRIPT_NAME##*/}"
@@ -45,7 +48,7 @@ if [ $# -eq 0 ] || [[ "$DATA_PATH" == "--help" ]] || [[ "$DATA_PATH" == "-h" ]];
 fi
 
 if [ $# -gt 2 ]; then
-    echo "Too many arguments provided" >&2
+    echo -e "${RED}ERROR: Too many arguments provided${NCL}" >&2
     exit 1
 fi
 
@@ -55,6 +58,25 @@ MV=false
 
 if [ $# -gt 1 ]; then
     # Only bother parsing args if an arg beside path is specified
+    if [ $# -gt 2 ]; then
+        echo -e "${RED}ERROR: Too many args.${NCL}" >&2
+        exit 1
+    fi
+
+    VALID_ARGS=("-h" "--help" "-l" "--ln" "-c" "--cp" "-m" "--mv")
+    FOUND=false
+
+    for item in "${VALID_ARGS[@]}"; do
+        if [[ "$item" == "$2" ]]; then
+            FOUND=true
+            break
+        fi
+    done
+    if ! $FOUND; then
+        echo -e "${RED}Error: Unrecognized argument: $2${NCL}" >&2
+        exit 1
+    fi
+
     if ! OPTS=$(getopt -o 'hlcm' -l 'help,ln,cp,mv' -n "$SCRIPT_NAME" -- "$@"); then
         echo -e "${RED}ERROR: Failed to parse options. See --help.${NCL}" >&2
         exit 1
@@ -94,9 +116,21 @@ if [ $# -gt 1 ]; then
     done
 fi
 
-if [ "$EUID" -ne 0 ]; then
-    echo -e "${RED}Please run as root or with sudo.${NCL}" >&2
+# RW permissions check
+if ! touch "$DATA_DIR/perm.test"; then
+    echo -e "${RED}ERROR: User running script does not have write permissions to $DATA_DIR${NCL}" >&2
     exit 1
+else
+    # Cleanup
+    rm "$DATA_DIR/perm.test"
+fi
+
+if ! touch "$WATCH_DIR/perm.test"; then
+    echo -e "${RED}ERROR: User running script does not have write permissions to $WATCH_DIR${NCL}" >&2
+    exit 1
+else
+    # Cleanup
+    rm "$WATCH_DIR/perm.test"
 fi
 
 # Validate path input
@@ -104,7 +138,7 @@ if [[ "$DATA_PATH" != *"/"* ]]; then
     # A directory name was provided, assume rest of path is in DATADIR
     DATA_PATH="$DATA_DIR/$DATA_PATH"
 elif [[ "$DATA_PATH" == /* ]]; then
-    : # Don't do anything, already a full path
+    : # Don't do anything, already a full path. This is just to gate the else.
 else
     echo -e "${RED}ERROR: only absolute paths or directory names are allowed: $DATA_PATH${NCL}" >&2
     exit 1
@@ -151,4 +185,8 @@ fi
 # Run using venv
 source "venv/bin/activate"
 
-"python3" upload.py "$UPLOADED_DIRECTORY"
+if python3 upload.py "$UPLOADED_DIRECTORY"; then
+    exit 0;
+else
+    exit 1;
+fi

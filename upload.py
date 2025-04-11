@@ -123,6 +123,10 @@ def cleanup_tmp_dir(directory, cleanup_enabled):
         except Exception as e:
             print(f"Error during cleanup: {str(e)}")
 
+def fail_exit(directory, cleanup_enabled):
+    cleanup_tmp_dir(directory, cleanup_enabled)
+    exit(1)
+
 def main():
     """Main function to run the script."""
 
@@ -145,14 +149,14 @@ def main():
             #print(f"Upload log created at: {upload_log_path}")
         except Exception as e:
             print(f"Error creating upload log: {str(e)}")
-            return
+            fail_exit(TMP_DIR, cleanup_enabled)
 
         if len(sys.argv) > 1:
             directory_name = sys.argv[1]
             update_upload_status(name=directory_name, new_status='processing')
         else:
             log("No directory name provided.", log_file_path)
-            return
+            fail_exit(TMP_DIR, cleanup_enabled)
 
         print(ascii_art_header("Header"))
         print("\033[0m\033[94mStarting upload script...\n\033[0m")
@@ -163,7 +167,7 @@ def main():
         if not directory.exists():
             log(f"The provided directory does not exist: {directory}", log_file_path)
             print(f"\033[0m\033[91mDirectory does not exist: {directory}\n\033[0m")
-            return
+            fail_exit(TMP_DIR, cleanup_enabled)
 
         update_status(directory, 'uploading')
 
@@ -221,7 +225,7 @@ def main():
             if not cookies:
                 log_to_file(log_file_path, "Login failed. Cannot proceed with the script.")
                 print("\033[31mLogin failed. Cannot proceed with the script.\n\033[0m")
-                return
+                fail_exit(TMP_DIR, cleanup_enabled)
             else:
                 print("\033[92mLogin successful. Proceeding...\n\033[0m")
                 # Continue with the rest of your script using the cookies
@@ -230,7 +234,7 @@ def main():
         except Exception as e:
             log_to_file(log_file_path, f"Error during login: {str(e)}")
             print(f"\033[91mError during login: {str(e)}\n\033[0m")
-            return
+            fail_exit(TMP_DIR, cleanup_enabled)
 
         insert_upload(name=directory_name)
 
@@ -256,14 +260,14 @@ def main():
                     update_upload_status(name=directory_name, new_status='dupe')
                     log_upload_details(upload_details, upload_log_path, duplicate_found=True)
                     cleanup_tmp_dir(TMP_DIR, cleanup_enabled)  # Clean up TMP_DIR
-                    return
+                    exit(1)
             else:
                 log("Dupe check or download is disabled in the config.", log_file_path)
 
         except Exception as e:
             log(f"Error checking for duplicates: {str(e)}", log_file_path)
             cleanup_tmp_dir(TMP_DIR, cleanup_enabled)  # Clean up TMP_DIR
-            return
+            exit(1)
 
         print(ascii_art_header("Category"))
 
@@ -288,7 +292,7 @@ def main():
                         generate_screenshots(directory, category_id)
                 except Exception as e:
                     log(f"Error generating screenshots: {str(e)}", log_file_path)
-                    return
+                    fail_exit(TMP_DIR, cleanup_enabled)
             else:
                 log(f"Category ID {category_id} is not in the screenshot categories: {screenshot_categories}", log_file_path)
         else:
@@ -378,7 +382,6 @@ def main():
                         game_genres = ', '.join(game_info['genres'])
                         game_release_date = game_info['release_date']
 
-
                         # Prepare the game info content for the template with BBCode formatting
                         gameinfo_content = (
                             f"[b]Game:[/b] [color=purple]{game_info['game_name']}[/color]\n"
@@ -429,8 +432,7 @@ def main():
         except Exception as e:
             log(f"Error creating torrent: {str(e)}", log_file_path)
             update_upload_status(name=directory_name, new_status='failed')
-            cleanup_tmp_dir(TMP_DIR, cleanup_enabled)
-            return
+            fail_exit(TMP_DIR, cleanup_enabled)
 
         # Image upload processing
         print(ascii_art_header("UploadImages"))
@@ -574,10 +576,11 @@ def main():
             # Optionally, you can log details even when an exception occurs, if relevant
             #log_upload_details(upload_details, upload_log_path, duplicate_found=False)
             print(f"Failed to upload torrent. Error: {str(e)}")
+            fail_exit(TMP_DIR, cleanup_enabled)
     except KeyboardInterrupt:
         # Cleanup on keyboard interrupt
         print(f"\nKeyboard interrupt detected. Cleaning up and exiting...")
-        cleanup_tmp_dir(TMP_DIR, cleanup_enabled)
+        fail_exit(TMP_DIR, cleanup_enabled)
     else:
         cleanup_tmp_dir(TMP_DIR, cleanup_enabled)
 
