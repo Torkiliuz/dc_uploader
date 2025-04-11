@@ -1,29 +1,53 @@
 #!/bin/bash
 
 print_help() {
-    echo "Script usage: $(basename "$0") [OPTION]"
+    echo "Script usage: $SCRIPT_NAME [OPTION]"
+    echo
     echo "Optional arguments:"
+    echo "    -d, --domain: Fully qualified domain name (e.g. hostname.domain.tld) you wish to use for the web app."
     echo
-    echo "-d, --domain: Fully qualified domain name (e.g. hostname.domain.tld) you wish to use for the web app."
-    echo
-    echo "-h, --help: Show this help page"
+    echo "    -h, --help: Show this help page"
 }
 
-set -e
-
-# Function to check if a command exists
 command_exists() {
     command -v "$1" &> /dev/null
 }
 
+set -e
+
+# Pretty colors
+RED='\033[0;31m'
+NCL='\033[0m'
+
 # Set default values if not provided
 HOSTNAME="$(hostname -f)"
+FULL_SCRIPT_NAME="$(readlink -f "${BASH_SOURCE[0]}")"
+SCRIPT_NAME="${FULL_SCRIPT_NAME##*/}"
 
 if [ $# -ne 0 ]; then
-    # Only bother parsing args if an arg beside path is specified
-    if ! OPTS=$(getopt -o 'hd:' -l 'help,domain:' -n "$(basename "$0")" -- "$@"); then
-        echo "Failed to parse options" >&2
-        print_help
+    if [ $# -gt 1 ]; then
+        if [ "$1" != "-d" ] && [ "$1" != "--domain" ]; then
+            echo -e "${RED}ERROR: Too many args. The only argument this script takes is -d/--domain. See --help.${NCL}" >&2
+            exit 1
+        fi
+    fi
+
+    VALID_ARGS=("-h" "--help" "-d" "--domain")
+    FOUND=false
+
+    for item in "${VALID_ARGS[@]}"; do
+        if [[ "$item" == "$1" ]]; then
+            FOUND=true
+            break
+        fi
+    done
+    if ! $FOUND; then
+        echo -e "${RED}Error: Unrecognized argument: $1${NCL}" >&2
+        exit 1
+    fi
+
+    if ! OPTS=$(getopt -o 'hd:' -l 'help,domain:' -n "$SCRIPT_NAME" -- "$@"); then
+        echo -e "${RED}ERROR: Failed to parse options. See --help.${NCL}" >&2
         exit 1
     fi
     # Reset the positional parameters to the parsed options
@@ -46,7 +70,7 @@ if [ $# -ne 0 ]; then
                 break
                 ;;
             *)
-                echo "Unrecognized argument" >&2
+                echo -e "${RED}Error: Unrecognized argument${NCL}" >&2
                 print_help
                 exit 1
                 ;;
@@ -56,14 +80,14 @@ fi
 
 
 if [ "$EUID" -ne 0 ]; then
-    echo "Please run as root or with sudo" >&2
+    echo -e "${RED}Please run as root or with sudo.${NCL}" >&2
     exit 1
 fi
 
 . /etc/os-release
 
-if [ "$ID" != "ubuntu" ]; then
-    echo "This program was only built for ubuntu, aborting install" >&2
+if [ "$ID" != "ubuntu" ] && [ "$ID" != "debian" ]; then
+    echo -e "${RED}ERROR: This program was only built for ubuntu/debian, aborting install.${NCL}" >&2
     exit 1
 fi
 
@@ -81,21 +105,36 @@ fi
 # Domain name validation if an actual domain is being used
 if [ "$SERVER_NAME" != "$HOSTNAME" ]; then
     if ! echo "$SERVER_NAME" | grep -qP '(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}$)'; then
-        echo "Invalid domain name provided." >&2
+        echo -e "${RED}Error: Invalid domain name provided${NCL}" >&2
         exit 1
     fi
 fi
 
-# Add the PPA repository if not already added
-if ! [ -f /etc/apt/sources.list.d/wahibre-ubuntu-mtn-noble.sources ]; then
-    apt-get update
-    apt-get install -y software-properties-common
-    echo "Movie thumbnailer repo not detected in apt source, adding"
-    add-apt-repository -y ppa:wahibre/mtn
-fi
+apt update
 
-# Update to ensure newest versions are installed (assuming not already installed)
-apt-get update
+# If mtn isn't already installed, add it.
+if ! command_exists mtn; then
+    if [ "$ID" == "ubuntu" ]; then
+        apt-get install -y software-properties-common
+        echo "Movie thumbnailer repo not detected in apt source, adding"
+        add-apt-repository -y ppa:wahibre/mtn
+    elif [ "$ID" == "debian" ]; then
+        if [ "$VERSION_ID" -ge 9 ]; then
+            if [ "$VERSION_ID" -eq 9 ]; then
+                VERSION_ID="9.0"
+            fi
+            apt-get install -y gpg
+            echo "deb http://download.opensuse.org/repositories/home:/movie_thumbnailer/Debian_$VERSION_ID/ /" | \
+                sudo tee /etc/apt/sources.list.d/home:movie_thumbnailer.list
+            curl -fsSL "https://download.opensuse.org/repositories/home:movie_thumbnailer/Debian_$VERSION_ID/Release.key" | \
+                gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/home_movie_thumbnailer.gpg > /dev/null
+        else
+            echo -e "${RED}$ID $VERSION_ID is not supported. Aborting.${NCL}" >&2
+            exit 1
+        fi
+    fi
+    apt-get update
+fi
 
 # Required packages
 echo "Installing required tools and their dependencies..."
@@ -147,10 +186,12 @@ echo "Installing Python packages in virtual environment..."
 "venv/bin/pip3" install --upgrade pip
 "venv/bin/pip3" install --upgrade -r requirements.txt
 
-# Ensure user scripts are executable
+# Ensure scripts are executable
 chmod +x start.sh
 chmod +x shutdown.sh
 chmod +x upload.sh
+chmod +x queue_upload.sh
+chmod +x utils/config_validator.sh
 
 echo "Initiating polar bear attack (do you guys actually read these messages?)"
 
@@ -161,7 +202,7 @@ echo "Initializing databases..."
 if "venv/bin/python3" utils/database_utils.py initialize_all_databases; then
     echo "Databases created successfully."
 else
-    echo "Error occurred while creating databases." >&2
+    echo -e "${RED}Error: Couldn't initialize databases${NCL}" >&2
     exit 1
 fi
 
@@ -192,5 +233,6 @@ sed -i "s/^hostname = .*/hostname = $SERVER_NAME/" config.ini
 
 echo "Setup complete. Start web server by executing start.sh, and make your first upload with upload.sh!"
 echo "Web app can be shutdown with shutdown.sh"
-echo "If you are exposing the web app to the wider Internet, update config.ini to a more secure username/password"
+echo -e "${RED}If you are exposing the web app to the wider Internet, update config.ini to a more secure" \
+"username/password${NCL}"
 echo "Note: web app does not need to be running to upload, its usage is entirely optional"
