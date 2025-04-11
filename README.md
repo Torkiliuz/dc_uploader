@@ -165,15 +165,14 @@ The install.sh script must be run as root, since it has to install prerequisites
 
 To remove just the program, simply delete the program folder. The python virtual environment is inside this folder, so don't worry about removing it manually
 
-To remove the dependencies installed via apt, run apt remove. ***For the love of god please don't blindly copy this apt command*** - double check if there are things that you don't want to uninstall, especially fuse3.
-
-`apt remove build-essential mtn mediainfo fuse3 libfuse-dev screen software-properties-common autoconf && apt autoremove -y`
+To remove the dependencies installed via apt, run apt remove. Double check if there are things that you don't want to uninstall, especially fuse3. Packages possibly installed by this script: 
+- build-essential mtn mediainfo fuse3 libfuse-dev screen software-properties-common autoconf gpg
 
 To remove rar2fs:
 
 `rm /usr/local/bin/rar2fs`
 
-Any installed repo's besides the standard apt repo's are stored in `/etc/apt/sources.list.d`
+Any installed repo's besides the standard apt repo's, which should be just mtn, are stored in `/etc/apt/sources.list.d`, with their gpg keys stored in `/etc/apt/trusted.gpg.d`
 
 ## FAQ
 
