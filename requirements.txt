@@ -1,0 +1,7 @@
+requests
+rfr
+flask
+watchdog
+torf-cli
+gevent
+cli-ui
