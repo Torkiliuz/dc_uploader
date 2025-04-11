@@ -123,6 +123,7 @@ if ! command_exists mtn; then
             if [ "$VERSION_ID" -eq 9 ]; then
                 VERSION_ID="9.0"
             fi
+            apt-get install -y gpg
             echo "deb http://download.opensuse.org/repositories/home:/movie_thumbnailer/Debian_$VERSION_ID/ /" | \
                 sudo tee /etc/apt/sources.list.d/home:movie_thumbnailer.list
             curl -fsSL "https://download.opensuse.org/repositories/home:movie_thumbnailer/Debian_$VERSION_ID/Release.key" | \
