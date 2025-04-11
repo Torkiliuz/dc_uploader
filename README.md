@@ -117,6 +117,8 @@ Since this might take a while, it might be a good idea to execute this as a deta
 
 ### Web app usage
 
+#### Web app is currently unsupported and its functionality cannot be guaranteed.
+
 Note: Web app usage is entirely optional. The upload tool can be used entirely from the command line.
 
 start.sh will start the web server on the specified port specified during install. Starts in a detatched screen session named "dc-uploader". Web app is not necessary - you can never start it and use this tool entirely from the command line via `upload.sh`.
