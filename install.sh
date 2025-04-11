@@ -190,6 +190,7 @@ echo "Installing Python packages in virtual environment..."
 chmod +x start.sh
 chmod +x shutdown.sh
 chmod +x upload.sh
+chmod +x queue_upload.sh
 chmod +x utils/config_validator.sh
 
 echo "Initiating polar bear attack (do you guys actually read these messages?)"
