@@ -68,6 +68,9 @@ if ! $FOUND; then
     exit 1
 fi
 
+# Store arg so it's not lost after getopt
+ARG="$2"
+
 if ! OPTS=$(getopt -o 'hlcm' -l 'help,ln,cp,mv' -n "$SCRIPT_NAME" -- "$@"); then
     echo -e "${RED}ERROR: Failed to parse options. See --help.${NCL}" >&2
     exit 1
@@ -102,6 +105,7 @@ while true; do
     esac
 done
 
+eval set -- "$OPTS"
 QUEUE_FILE=$(realpath -s "$QUEUE_FILE")
 if ! [ -f "$QUEUE_FILE" ]; then
     # It's a file. Error.
@@ -116,7 +120,7 @@ if [ -f "$LOG_PATH" ]; then
 fi
 
 while IFS= read -r LINE; do
-    if ./upload.sh "$LINE" "$2"; then
+    if ./upload.sh "$LINE" "$ARG"; then
         echo "Successfully uploaded: $(basename "$LINE")" >> "$LOG_PATH"
     else
         echo "Error when uploading: $(basename "$LINE")" >> "$LOG_PATH"
