@@ -59,7 +59,5 @@ RUN /venv/dc_uploader/bin/pip3 install --upgrade -r requirements.txt
 COPY . .
 
 RUN find bin/mkbrr -type f -name "mkbrr" -exec chmod +x {} \; chmod +x scripts/*.sh; chmod +x utils/*.sh
-RUN chmod 777
-
 
 ENTRYPOINT bash /dc_uploader/utils/config_validator.sh upload.sh
