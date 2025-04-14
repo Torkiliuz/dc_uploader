@@ -9,7 +9,7 @@ RUN wget https://mediaarea.net/repo/deb/repo-mediaarea_1.0-25_all.deb && \
     rm repo-mediaarea_1.0-25_all.deb
 
 # Add mtn repo
-RUN echo "deb http://download.opensuse.org/repositories/home:/movie_thumbnailer/Debian_12/ /" \
+RUN echo "deb https://download.opensuse.org/repositories/home:/movie_thumbnailer/Debian_12/ /" \
     | tee /etc/apt/sources.list.d/home:movie_thumbnailer.list
 
 RUN curl -fsSL https://download.opensuse.org/repositories/home:movie_thumbnailer/Debian_12/Release.key | gpg --dearmor \
@@ -26,7 +26,7 @@ RUN apt-get update && \
     autoconf
 
 # Install rar2fs
-RUN wget https://github.com/hasse69/rar2fs/archive/refs/tags/v${RAR2FS_VERSION}.tar.gz \
+RUN wget https://github.com/hasse69/rar2fs/archive/refs/tags/v${RAR2FS_VERSION}.tar.gz && \
     tar zxvf v${RAR2FS_VERSION}.tar.gz
 
 WORKDIR rar2fs-${RAR2FS_VERSION}
