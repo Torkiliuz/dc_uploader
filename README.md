@@ -1,4 +1,4 @@
-# Still under development
+# Still under active development, things might change/break
 
 ## What is DC Uploader?
 
@@ -38,15 +38,15 @@ A simple python tool built for ubuntu to create and upload torrents. Debian is u
     - APIKEY
     - CLIENT_ID
     - CLIENT_SECRET
-    - ETORFPATH
+    - SOURCEFOLDER
     - ANNOUNCEURL
     - WATCHFOLDER
     - DATADIR
-6. You're done.
+6. You're done. All user scripts are in the scripts directory.
 
 ### config.ini settings
 
-Do not change the headers or location of the settings. If it is not mentioned below, just leave it its default.
+Do not change the headers or location of the settings, or change the location of config.ini. It MUST remain in the program's root directory, otherwise - bugs. If it is not mentioned below, just leave it its default.
 
 - user: If you are exposing the web app to the wider Internet, you should choose a more secure username.
 - password: If you are exposing the web app to the wider Internet, you absolutely must choose a more secure password.
@@ -55,10 +55,13 @@ Do not change the headers or location of the settings. If it is not mentioned be
 - PASSWORD: Your site password.
 - CAPTCHA_PASSKEY: This is your passkey for the site.
 - LOGINTXT: Your site username (again).
+- FREELEECH: Set uploaded torrent to freeleech. Vast majority of users have no actual control over the freeleech status of their uploads, so the majority of users can just leave this at default and ignore it.
+- ANONYMOUS: Set uploaded torrents to anonymous or not. Defaults to 1 (true).
 - APIKEY: Your TMDB API key to search for meta info.
 - CLIENT_ID: Your IGDB client ID to search for video game info.
 - CLIENT_SECRET: Your IGDB client secret to search for video game info
-- ETORFPATH: directory where .torrent files from source torrent site are downloaded to. If you are always rehashing new .torrent files when you upload (e.g. EDIT_TORRENT is set to false), this directory is largely irrelevant and can be just set to `tmp/`.
+- HASHER: What hash program to use. Can be either `torf` or `mkbrr`
+- SOURCEFOLDER: directory where .torrent files from source torrent site are downloaded to. If you are always rehashing new .torrent files when you upload (e.g. EDIT_TORRENT is set to false), this directory is largely irrelevant and can be just set to `tmp/`.
     - If EDIT_TORRENT is set to true, it will edit the torrent instead of creating a new one, which saves time.
 - ANNOUNCEURL: Your personal announce URL.
 - WATCHFOLDER: Path to the directory where .torrent file for the uploaded torrent is placed for the client to import, e.g., /uploaders/torrentwatch.
@@ -69,6 +72,8 @@ TMDB:
 
 IGDB:
 - See [here](https://api-docs.igdb.com/#getting-started) on how to generate a client ID and secret.
+
+Setting Freeleech
 
 ## Usage
 
@@ -90,7 +95,7 @@ The DATADIR would be /home/torrentdata
 
 You would run: `upload.sh "/home/torrentdata/tracker1/this.is.a.nice.movie-grp"`
 
-By default, the program assumes that the data to be uploaded already exists in DATADIR. See [discrete directories](https://github.com/FinHv/dc_uploader/tree/main?tab=readme-ov-file#discrete-directories) if you want to upload directories that are outside DATADIR.
+By default, the program assumes that the data to be uploaded already exists in DATADIR. See [discrete directories](https://github.com/FinHv/dc_uploader/tree/main?tab=readme-ov-file#discrete-directories) if you want to upload directories that are outside DATADIR. If you pass `upload.sh` one of the optional arguments, but the directory is already in DATADIR, it just ignores the argument, thus avoiding duplicating data.
 
 #### Optional arguments:
 -h, --help: Prints help. Called via `upload.sh -h` or `upload.sh --help`.
@@ -107,11 +112,11 @@ Following arguments are primarily used when user is using discrete directories.
 
 If you have many directories you want to upload at once, but don't want to manually run `upload.sh` so many times, use `queue_upload.sh`. Create a file and write the same directory path you'd normally use for `upload.sh`, with each directory on a separate line. Then, just call `queue_upload.sh [QUEUE FILE] [OPTION]`. 
 
-Use `queue_upload.sh` exactly the same as you would `upload.sh`, just that instead of providing a directory, you provide a queue file. The only difference is that link/copy/move argument is mandatory, not optional. Don't worry, if the directory already exists in DATADIR, the argument is ignore for that directory, as `upload.sh` is what is called under the hood and already has such checks.
+Use `queue_upload.sh` exactly the same as you would `upload.sh`, just that instead of providing a directory, you provide a queue file. The only difference is that link/copy/move argument is mandatory, not optional. Don't worry, again, if the directory already exists in DATADIR, the argument is ignored for that directory, as `upload.sh` is what is called under the hood and already has such checks.
 
 The queue file provided to `queue_upload.sh` can either be a full absolute path or a relative path relative to `queue_upload.sh`. e.g. `queue_upload.sh some_queue_file.txt [OPTION]` if queue file is located in the same folder as `queue_upload.sh`.
 
-If you want to see a log of what was successful during the last run, the success/failure of each queue item is logged in `files/queue_upload.log`. This log is overwritten each time `queue_upload.sh` is run.
+If you want to see a log of what was successful during the last run, the success/failure of each queue item is logged in `files/queue_upload.log`.
 
 Since this might take a while, it might be a good idea to execute this as a detached screen. See [FAQ](https://github.com/FinHv/dc_uploader/tree/main?tab=readme-ov-file#faq).
 
@@ -132,7 +137,7 @@ shutdown.sh shuts down the web server and ends the screen session.
 
 If using discrete directories, web app requires users to manually copy/hardlink/symlink/move to DATADIR. Hopefully future versions will automate the copy/hardlink/symlink process when using discrete directory.
 
-You can connect to the screen session with `screen -r dc-uploader`. Detatch from the screen with `CTRL + A` then `D`.
+You can connect to the screen session with `screen -r dc-uploader`. Detatch from the screen with `CTRL + A` then `D`. Logs are stored in files/webapp.log.
 
 ## Discrete directories
 
@@ -165,7 +170,7 @@ The install.sh script must be run as root, since it has to install prerequisites
 
 ## Uninstall :(
 
-To remove just the program, simply delete the program folder. The python virtual environment is inside this folder, so don't worry about removing it manually
+To remove just the program, simply delete the program folder. The python virtual environment path is /venv/dc_uploader
 
 To remove the dependencies installed via apt, run apt remove. Double check if there are things that you don't want to uninstall, especially fuse3. Packages possibly installed by this script: 
 - build-essential mtn mediainfo fuse3 libfuse-dev screen software-properties-common autoconf gpg
@@ -174,7 +179,7 @@ To remove rar2fs:
 
 `rm /usr/local/bin/rar2fs`
 
-Any installed repo's besides the standard apt repo's, which should be just mtn, are stored in `/etc/apt/sources.list.d`, with their gpg keys stored in `/etc/apt/trusted.gpg.d`
+Any installed repo's besides the standard apt repo's, which should be just mtn and mediainfo, are stored in `/etc/apt/sources.list.d`, with their gpg keys stored in `/etc/apt/trusted.gpg.d`
 
 ## FAQ
 
@@ -186,7 +191,11 @@ A: Luckily, screen is installed by the script! You can simply execute the comman
 
 `screen -dmS [SCREEN_NAME] ./upload.sh /some/directory/ --ln`
 
-etc.
+etc. If you want to log the screen's output into some.log located in the program's files directory, you can do that too:
+
+`screen -dms [SCREEN_NAME] -L -Logfile files/some.log ./queue_upload.sh...`
+
+`screen -dms [SCREEN_NAME] -L -Logfile files/some.log ./upload.sh...`
 
 Essentially, just add `screen -dmS [SCREEN_NAME]` to the start of your command and it'll execute that command in a detached screen. The screen will automatically terminate once the command finishes. You can omit the `S [SCREEN_NAME]` if you don't want to name your screen.
 
@@ -198,11 +207,42 @@ A: This depends on how you set up the watch directory. By using a watch director
 
 #### Q: I use discrete directories, but I want to add it to a download-then-uploadToDCC automation pathway, how do I do that?
 
-A: Assuming you have created an upload directory as directed by the [discrete directories](https://github.com/FinHv/dc_uploader/tree/main?tab=readme-ov-file#discrete-directories) section, just pass the torrent content path to upload.sh with one of the relevant arguments. The script is the one that handles the linking/copying/moving.
+A: Assuming you have created an upload directory as directed by the [discrete directories](https://github.com/FinHv/dc_uploader/tree/main?tab=readme-ov-file#discrete-directories) section, just pass the torrent content path to upload.sh with one of the relevant arguments. The script is the one that handles the linking/copying. You most likely should not use `--mv` in automation since it can break the source torrent which you might still need to seed.
+
+**Example with rtorrent:**
+
+```
+schedule2 = watch_directory_source,5,5,load.start=/uploaders/sourcewatch/*.torrent
+schedule2 = watch_directory,5,5,load.start=/uploaders/dcwatch/*.torrent
+schedule2 = tied_directory,6,5,start_tied=
+schedule2 = untied_directory,7,5,stop_untied=
+schedule2 = untied_directory,8,5,remove_untied=
+
+method.set_key=event.download.finished,move_complete, \
+"execute2={/path/to/dc_upload/upload.sh,$d.get_base_path=,--ln/--cp}"
+```
+
+Here, sourcewatch is SOURCEFOLDER, dcwatch is WATCHFOLDER, DATADIR would be whatever folder rtorrent downloads torrents into, and $d.get_base_path= is the directory to be uploaded.
+
+**Example with qBittorrent:**
+
+Navigate to "Downloads" in settings. Scroll to bottom, check "Run external program on torrent finished". Input:
+
+`/path/to/dc_uploader/upload.sh %F [ARG as needed]`
+
+If you already have some command executing, just chain the command:
+
+`[some pre-existing command, e.g. cross-seed] && /path/to/dc_uploader/upload.sh %F [ARG as needed]`
+
+`&&` will only execute the upload if the previous command is successful. If you want upload regardless of the success of the previous command, replace `&&` with `;`
 
 #### Q: What happens if I pass the script a file instead of a directory?
 
 A: A polar bear mauls you. Assuming you survive, the script will fail - this tool does not support file uploads. The tool does not create subdirectories within the .torrent file.
+
+#### Q: Will logs grow indefinitely?
+
+For some, yes. However, for the two things that tend to generate a lot of logs, namely the webapp and queue_upload.sh, they are rotated to [somelog].log.old when they reach 2MiB and 1MiB, respectively. Even for the logs that don't have automatic rotation, logs take up very little space, and you can always just manually delete them from the files directory if you want to.
 
 #### Q: What happens if I pass the script the path of something already in DATADIR?
 

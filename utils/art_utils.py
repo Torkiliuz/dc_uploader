@@ -1,4 +1,3 @@
-import os
 from utils.config_loader import ConfigLoader
 
 # Load configuration settings
@@ -8,31 +7,32 @@ version = config.get('Header', 'VERSION')
 date = config.get('Header', 'DATE')
 text = config.get('Header', 'TEXT')
 
-def ascii_art_header(section_name):
+def ascii_art_header(section_name, program_version = None):
     """
     Generates ASCII art headers for different sections.
 
     Args:
         section_name (str): The name of the section for which the ASCII art header is to be generated.
-
+        program_version (str): The program version to be included in the ASCII art header
     Returns:
         str: The ASCII art string for the given section, with terminal cleared and text color set.
     """
     headers = {
-        "Header": f"""
-                _          _    _       _                 _   ____        _   
-     /\        | |        | |  | |     | |               | | |  _ \      | |  
-    /  \  _   _| |_ ___   | |  | |_ __ | | ___   __ _  __| | | |_) | ___ | |_ 
-   / /\ \| | | | __/ _ \  | |  | | '_ \| |/ _ \ / _` |/ _` | |  _ < / _ \| __|
-  / ____ \ |_| | || (_) | | |__| | |_) | | (_) | (_| | (_| | | |_) | (_) | |_ 
- /_/    \_\__,_|\__\___/   \____/| .__/|_|\___/ \__,_|\__,_| |____/ \___/ \__|
-                                 | |                                          
-                                 |_|                    
-						 by R4bb1t & UnpooledUnit v{version}
- {text}                                              {date}
+        "Header": rf"""
+  _____   _____   _    _       _                 _           
+ |  __ \ / ____| | |  | |     | |               | |          
+ | |  | | |      | |  | |_ __ | | ___   __ _  __| | ___ _ __ 
+ | |  | | |      | |  | | '_ \| |/ _ \ / _` |/ _` |/ _ \ '__|
+ | |__| | |____  | |__| | |_) | | (_) | (_| | (_| |  __/ |   
+ |_____/ \_____|  \____/| .__/|_|\___/ \__,_|\__,_|\___|_|   
+                        | |                                  
+                        |_|                                  
+						 by R4bb1t & UnpooledUnit v{program_version}
+						 
+ {text}                             config.ini date: {date}
 -----------------------------------------------------------------------------
         """,
-        "Login": """
+        "Login": r"""
   _                 _       
  | |               (_)      
  | |     ___   __ _ _ _ __  
@@ -44,7 +44,7 @@ def ascii_art_header(section_name):
     
 -----------------------------------------------------------------------------
         """,
-        "Dupe checking": """
+        "Dupe checking": r"""
   _____                      _____ _               _    _                         
  |  __ \                    / ____| |             | |  (_)                        
  | |  | |_   _ _ __   ___  | |    | |__   ___  ___| | ___ _ __   __ _            
@@ -56,7 +56,7 @@ def ascii_art_header(section_name):
 
 -----------------------------------------------------------------------------
         """,
-        "Create Torrent": """
+        "Create Torrent": r"""
    _____                _         _______                        _                
   / ____|              | |       |__   __|                      | |             
  | |     _ __ ___  __ _| |_ ___     | | ___  _ __ _ __ ___ _ __ | |_           
@@ -66,7 +66,7 @@ def ascii_art_header(section_name):
                                                                              
 -----------------------------------------------------------------------------
         """,
-        "Category": """
+        "Category": r"""
    _____      _                              
   / ____|    | |                                                             
  | |     __ _| |_ ___  __ _  ___  _ __ _   _                                 
@@ -78,27 +78,27 @@ def ascii_art_header(section_name):
 
 -----------------------------------------------------------------------------
         """,
-        "Mediainfo": """
-  __  __          _ _       _        __      
- |  \/  |        | (_)     (_)      / _|                                     
- | \  / | ___  __| |_  __ _ _ _ __ | |_ ___                                    
- | |\/| |/ _ \/ _` | |/ _` | | '_ \|  _/ _ \                                  
- | |  | |  __/ (_| | | (_| | | | | | || (_) |                                
- |_|  |_|\___|\__,_|_|\__,_|_|_| |_|_| \___/                                  
+        "Mediainfo": r"""
+   __  __          _ _       _____        __      
+ |  \/  |        | (_)     |_   _|      / _|     
+ | \  / | ___  __| |_  __ _  | |  _ __ | |_ ___  
+ | |\/| |/ _ \/ _` | |/ _` | | | | '_ \|  _/ _ \ 
+ | |  | |  __/ (_| | | (_| |_| |_| | | | || (_) |
+ |_|  |_|\___|\__,_|_|\__,_|_____|_| |_|_| \___/                                   
                                                                              
 -----------------------------------------------------------------------------
         """,
-        "IMDB": """
-  _____ __  __ _____  ____  
- |_   _|  \/  |  __ \|  _ \ 
-   | | | \  / | |  | | |_) |
-   | | | |\/| | |  | |  _ < 
+        "IMDB": r"""
+ _____ __  __ _____  _     
+ |_   _|  \/  |  __ \| |    
+   | | | \  / | |  | | |__  
+   | | | |\/| | |  | | '_ \ 
   _| |_| |  | | |__| | |_) |
- |_____|_|  |_|_____/|____/ 
+ |_____|_|  |_|_____/|_.__/ 
                             
 -----------------------------------------------------------------------------
         """,
-        "UploadImages": """
+        "UploadImages": r"""
   _____                                                                        
  |_   _|                                                                    
    | |  _ __ ___   __ _  __ _  ___  ___                                        
@@ -110,7 +110,7 @@ def ascii_art_header(section_name):
 
 -----------------------------------------------------------------------------
         """,
-        "NFO": """
+        "NFO": r"""
   _   _ ______ ____  
  | \ | |  ____/ __ \ 
  |  \| | |__ | |  | |
@@ -120,7 +120,7 @@ def ascii_art_header(section_name):
                      
 -----------------------------------------------------------------------------
         """,
-        "Uploading": """
+        "Uploading": r"""
   _    _       _                 _ _             
  | |  | |     | |               | (_)                                          
  | |  | |_ __ | | ___   __ _  __| |_ _ __   __ _                              
@@ -132,7 +132,7 @@ def ascii_art_header(section_name):
 
 -----------------------------------------------------------------------------
         """,
-        "Screenshots": """
+        "Screenshots": r"""
    _____                              _           _       
   / ____|                            | |         | |                             
  | (___   ___ _ __ ___  ___ _ __  ___| |__   ___ | |                           
@@ -142,7 +142,7 @@ def ascii_art_header(section_name):
                                                           
 -----------------------------------------------------------------------------
         """,
-        "Gameinfo": """                                                  
+        "Gameinfo": r"""                                                  
    _____                      _        __                                    
   / ____|                    (_)      / _|                                   
  | |  __  __ _ _ __ ___   ___ _ _ __ | |_ ___                               
@@ -152,7 +152,7 @@ def ascii_art_header(section_name):
                                                                                                                                                             
 -----------------------------------------------------------------------------
         """,
-        "Fastresume": """
+        "Fastresume": r"""
   ______        _     _____                                
  |  ____|      | |   |  __ \                                                  
  | |__ __ _ ___| |_  | |__) |___  ___ _   _ _ __ ___   ___                   
@@ -163,14 +163,9 @@ def ascii_art_header(section_name):
 -----------------------------------------------------------------------------
 """
     }
-
-    # Clear the terminal screen and set text color for Header
-    if section_name == "Header":
-        #os.system('cls' if os.name == 'nt' else 'clear')
-        print("\033[1;34m")  # Blue color
-
-    # Set color for other sections
+    # Set color for sections
     section_colors = {
+        "Header": "\033[1;34m", # Blue
         "Login": "\033[1;32m",  # Green
         "Dupe checking": "\033[1;33m",  # Yellow
         "Create Torrent": "\033[1;35m",  # Magenta
@@ -185,7 +180,6 @@ def ascii_art_header(section_name):
     }
 
     if section_name in section_colors:
-        print(section_colors[section_name])
-
-    # Return the header if found, otherwise return the section name
-    return headers.get(section_name, section_name)
+        print(section_colors[section_name] + headers.get(section_name) + '\033[0m\n')
+    else:
+        print(headers.get(section_name) + '\033[0m')

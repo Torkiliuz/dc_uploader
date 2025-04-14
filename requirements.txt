@@ -5,3 +5,6 @@ watchdog
 torf-cli
 gevent
 cli-ui
+rich
+psutil
+guessit

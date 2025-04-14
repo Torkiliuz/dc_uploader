@@ -1,21 +1,21 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
-from gevent import pywsgi
 import configparser
-import os
-import subprocess
-from functools import wraps
-from datetime import datetime
-import logging
-import threading
 import json
-import ssl
-from operator import itemgetter
+import logging
+import os
+import platform
+import shlex
 import sqlite3
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
+import subprocess
+import threading
 import time
 from collections import OrderedDict
+from datetime import datetime
+from functools import wraps
+from operator import itemgetter
 
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
 
 DATABASE = 'data/uploads.db'
 DIRDATABASE = 'data/directories.db'
@@ -412,9 +412,8 @@ def upload():
     if not directory_name:
         return "Directory name not provided", 400  # Return 400 if directory_name is missing
 
-    # Start upload in a separate thread to avoid blocking
-    upload_thread = threading.Thread(target=upload.py, args=(directory_name,))
-    upload_thread.start()
+    # Start upload in a subprocess to avoid blocking
+    subprocess.Popen(['venv/bin/python3', 'backend.py', f'{shlex.quote(str(directory_name))}'])
 
     return "Upload started", 200
 
@@ -460,15 +459,13 @@ def set_uploaded():
     dir_path = os.path.join(data_dir, directory_name)
 
     # Remove any existing status folders
-    for status in ['uploading', 'uploaded', 'dupe']:
+    for status in ['uploading', 'uploaded', 'dupe', 'failed', 'processing']:
         remove_status_file(dir_path, status)
 
     # Create .uploaded status folder
     create_status_file(dir_path, 'uploaded')
 
     return redirect(url_for('home'))
-
-
 
 # Helper functions to remove and create status files
 def remove_status_file(dir_path, status):
@@ -709,6 +706,9 @@ def get_logs():
     return jsonify({'data': log_data})
 
 if __name__ == '__main__':
+    if platform.system() != 'Linux':
+        print("This tool is designed only for Linux")
+        exit(1)
     logging.debug('Starting application...')
 
     # Initialize the SQLite database
@@ -729,8 +729,8 @@ if __name__ == '__main__':
     initiate_cleanup_daemon()
 
     # Path to your SSL certificate and key
-    ssl_cert_path = '/etc/ssl/certs/selfsigned_cert.pem'
-    ssl_key_path = '/etc/ssl/private/selfsigned_key.pem'
+    ssl_cert_path = 'certificates/cert.pem'
+    ssl_key_path = 'certificates/key.pem'
 
     try:
         # Run Flask app with SSL support

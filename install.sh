@@ -1,7 +1,7 @@
 #!/bin/bash
 
 print_help() {
-    echo "Script usage: $SCRIPT_NAME [OPTION]"
+    echo "Script usage: $script [OPTION]"
     echo
     echo "Optional arguments:"
     echo "    -d, --domain: Fully qualified domain name (e.g. hostname.domain.tld) you wish to use for the web app."
@@ -16,47 +16,52 @@ command_exists() {
 set -e
 
 # Pretty colors
-RED='\033[0;31m'
-NCL='\033[0m'
+red='\033[0;31m'
+ncl='\033[0m'
 
 # Set default values if not provided
 HOSTNAME="$(hostname -f)"
-FULL_SCRIPT_NAME="$(readlink -f "${BASH_SOURCE[0]}")"
-SCRIPT_NAME="${FULL_SCRIPT_NAME##*/}"
+
+script_path="$(readlink -f "${BASH_SOURCE[0]}")"
+root_dir="${script_path%/*}"
+script="${script_path##*/}"
+script_dir="$root_dir/scripts"
+
+cd "$root_dir" || exit 1
 
 if [ $# -ne 0 ]; then
     if [ $# -gt 1 ]; then
         if [ "$1" != "-d" ] && [ "$1" != "--domain" ]; then
-            echo -e "${RED}ERROR: Too many args. The only argument this script takes is -d/--domain. See --help.${NCL}" >&2
+            echo -e "${red}ERROR: Too many args. The only argument this script takes is -d/--domain. See --help.${ncl}" >&2
             exit 1
         fi
     fi
 
-    VALID_ARGS=("-h" "--help" "-d" "--domain")
-    FOUND=false
+    valid_args=("-h" "--help" "-d" "--domain")
+    found=false
 
-    for item in "${VALID_ARGS[@]}"; do
+    for item in "${valid_args[@]}"; do
         if [[ "$item" == "$1" ]]; then
-            FOUND=true
+            found=true
             break
         fi
     done
-    if ! $FOUND; then
-        echo -e "${RED}Error: Unrecognized argument: $1${NCL}" >&2
+    if ! $found; then
+        echo -e "${red}Error: Unrecognized argument: $1${ncl}" >&2
         exit 1
     fi
 
-    if ! OPTS=$(getopt -o 'hd:' -l 'help,domain:' -n "$SCRIPT_NAME" -- "$@"); then
-        echo -e "${RED}ERROR: Failed to parse options. See --help.${NCL}" >&2
+    if ! opts=$(getopt -o 'hd:' -l 'help,domain:' -n "$script" -- "$@"); then
+        echo -e "${red}ERROR: Failed to parse options. See --help.${ncl}" >&2
         exit 1
     fi
     # Reset the positional parameters to the parsed options
-    eval set -- "$OPTS"
+    eval set -- "$opts"
     # Process arguments
     while true; do
         case "$1" in
             -d | --domain)
-                SERVER_NAME="$2"
+                server_name="$2"
                 shift 2
                 ;;
             -h | --help)
@@ -66,11 +71,11 @@ if [ $# -ne 0 ]; then
             --)
                 shift
                 # No domain provided, use a default
-                SERVER_NAME=${SERVER_NAME:-"$HOSTNAME"}
+                server_name=${server_name:-"$HOSTNAME"}
                 break
                 ;;
             *)
-                echo -e "${RED}Error: Unrecognized argument${NCL}" >&2
+                echo -e "${red}Error: Unrecognized argument${ncl}" >&2
                 print_help
                 exit 1
                 ;;
@@ -78,40 +83,49 @@ if [ $# -ne 0 ]; then
     done
 fi
 
-
 if [ "$EUID" -ne 0 ]; then
-    echo -e "${RED}Please run as root or with sudo.${NCL}" >&2
+    echo -e "${red}Please run as root or with sudo.${ncl}" >&2
     exit 1
+else
+    stored_user="$(who mom likes | awk '{print $1}')";
+    if [ -z  "$stored_user" ]; then
+        # For some reason, stored user still empty, try with sudo
+        stored_user="$(sudo who mom likes | awk '{print $1}')";
+        if [ -z  "$stored_user" ]; then
+            echo -e "${red}Couldn't store name of user running this script for some reason, contact the devs.${ncl}" >&2
+            exit 1
+        fi
+    fi
 fi
 
 . /etc/os-release
 
 if [ "$ID" != "ubuntu" ] && [ "$ID" != "debian" ]; then
-    echo -e "${RED}ERROR: This program was only built for ubuntu/debian, aborting install.${NCL}" >&2
+    echo -e "${red}ERROR: This program was only built for ubuntu/debian, aborting install.${ncl}" >&2
     exit 1
 fi
 
-# Move to install.sh root directory
-SCRIPT_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
-
-cd "$SCRIPT_PATH"
-
-if [ -z "$SERVER_NAME" ]; then
+if [ -z "$server_name" ]; then
     # Initiate server name to hostname in case user selects N. Needed for handle_reply.
-    read -p "Enter the fully qualified domain name for the self-signed certificate [default: hostname] : " -r
-    SERVER_NAME=${REPLY:-"$HOSTNAME"}
+    read -p \
+    "Enter the fully qualified domain name for the self-signed certificate. Leave blank for default [default: $HOSTNAME] : " -r
+    server_name=${REPLY:-"$HOSTNAME"}
 fi
 
 # Domain name validation if an actual domain is being used
-if [ "$SERVER_NAME" != "$HOSTNAME" ]; then
-    if ! echo "$SERVER_NAME" | grep -qP '(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}$)'; then
-        echo -e "${RED}Error: Invalid domain name provided${NCL}" >&2
+if [ "$server_name" != "$HOSTNAME" ]; then
+    if ! echo "$server_name" | grep -qP '(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}$)'; then
+        echo -e "${red}Error: Invalid domain name provided${ncl}" >&2
         exit 1
     fi
 fi
 
-apt update
-
+if ! command_exists mediainfo; then
+    # If mediainfo isn't already installed, add the repo
+    wget https://mediaarea.net/repo/deb/repo-mediaarea_1.0-25_all.deb
+    dpkg -i repo-mediaarea_1.0-25_all.deb
+    rm repo-mediaarea_1.0-25_all.deb
+fi
 # If mtn isn't already installed, add it.
 if ! command_exists mtn; then
     if [ "$ID" == "ubuntu" ]; then
@@ -129,12 +143,13 @@ if ! command_exists mtn; then
             curl -fsSL "https://download.opensuse.org/repositories/home:movie_thumbnailer/Debian_$VERSION_ID/Release.key" | \
                 gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/home_movie_thumbnailer.gpg > /dev/null
         else
-            echo -e "${RED}$ID $VERSION_ID is not supported. Aborting.${NCL}" >&2
+            echo -e "${red}$ID $VERSION_ID is not supported. Aborting.${ncl}" >&2
             exit 1
         fi
     fi
-    apt-get update
 fi
+
+apt-get update
 
 # Required packages
 echo "Installing required tools and their dependencies..."
@@ -143,20 +158,20 @@ apt-get install -y build-essential mtn mediainfo fuse3 libfuse-dev screen autoco
 # Install rar2fs
 if [[ ! -f /usr/local/bin/rar2fs ]]; then
     echo "Installing rar2fs..."
-    UNRAR_VER="7.1.6"
-    RAR2FS_VER="1.29.7"
-    WORKDIR="/tmp/rar2fs_installation"
+    unrar_ver="7.1.6"
+    rar2fs_ver="1.29.7"
+    workdir="/tmp/rar2fs_installation"
 
     # Download rar2fs
-    mkdir -p $WORKDIR
-    cd $WORKDIR
-    wget https://github.com/hasse69/rar2fs/archive/refs/tags/v$RAR2FS_VER.tar.gz
-    tar zxvf v$RAR2FS_VER.tar.gz
-    cd rar2fs-$RAR2FS_VER
+    mkdir -p $workdir
+    cd $workdir
+    wget https://github.com/hasse69/rar2fs/archive/refs/tags/v$rar2fs_ver.tar.gz
+    tar zxvf v$rar2fs_ver.tar.gz
+    cd rar2fs-$rar2fs_ver
 
     # Download unrar inside rar2fs directory
-    wget http://www.rarlab.com/rar/unrarsrc-$UNRAR_VER.tar.gz
-    tar zxvf unrarsrc-$UNRAR_VER.tar.gz
+    wget https://www.rarlab.com/rar/unrarsrc-$unrar_ver.tar.gz
+    tar zxvf unrarsrc-$unrar_ver.tar.gz
     cd unrar
 
     # Install unrar libraries, that's all rar2fs needs
@@ -174,24 +189,25 @@ if [[ ! -f /usr/local/bin/rar2fs ]]; then
     make install && echo "rar2fs installed successfully"
 
     sed -i 's/#user_allow_other/user_allow_other/g' /etc/fuse.conf
-    cd "$SCRIPT_PATH"
-    rm -rf $WORKDIR
+    cd "$root_dir" || exit 1
+    rm -rf $workdir
 fi
 
 # Create venv
-python3 -m venv venv
+mkdir -p /venv
+python3 -m venv /venv/dc_uploader
 
 # Install Python packages
 echo "Installing Python packages in virtual environment..."
-"venv/bin/pip3" install --upgrade pip
-"venv/bin/pip3" install --upgrade -r requirements.txt
+"/venv/dc_uploader/bin/pip3" install --upgrade pip wheel
+"/venv/dc_uploader/bin/pip3" install --upgrade -r "$root_dir/requirements.txt"
 
 # Ensure scripts are executable
-chmod +x start.sh
-chmod +x shutdown.sh
-chmod +x upload.sh
-chmod +x queue_upload.sh
-chmod +x utils/config_validator.sh
+chmod +x "$script_dir/start.sh"
+chmod +x "$script_dir/shutdown.sh"
+chmod +x "$script_dir/upload.sh"
+chmod +x "$script_dir/queue_upload.sh"
+chmod +x "$root_dir/utils/config_validator.sh"
 
 echo "Initiating polar bear attack (do you guys actually read these messages?)"
 
@@ -199,40 +215,31 @@ echo "Initiating polar bear attack (do you guys actually read these messages?)"
 echo "Initializing databases..."
 # Does not need virtual environment since it is touching stuff outside of virtual environment
 
-if "venv/bin/python3" utils/database_utils.py initialize_all_databases; then
+if /venv/dc_uploader/bin/python3 "$root_dir/utils/database_utils.py" initialize_all_databases; then
     echo "Databases created successfully."
 else
-    echo -e "${RED}Error: Couldn't initialize databases${NCL}" >&2
+    echo -e "${red}Error: Couldn't initialize databases${ncl}" >&2
     exit 1
 fi
 
 # SSL setup
 # Generate a self-signed certificate
 echo "Generating self-signed certificate..."
-openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -keyout key.pem -out cert.pem -days 3650 -nodes \
--subj "/CN=$SERVER_NAME"
+mkdir -p "$root_dir/certificates"
+openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -keyout "$root_dir/certificates/key.pem" \
+-out "$root_dir/certificates/cert.pem" -days 3650 -nodes -subj "/CN=$server_name"
 
-# Move self-signed certificates to an appropriate directory (e.g., /etc/ssl)
-echo "Self-signed certificate generated, moving certificates to /etc/ssl from working directory"
-mv cert.pem /etc/ssl/certs/selfsigned_cert.pem
-mv key.pem /etc/ssl/private/selfsigned_key.pem
+chown -R "$stored_user":"$stored_user" certificates
 
-# Update SSL paths in Flask app
-SSL_CERT_PATH="/etc/ssl/certs/selfsigned_cert.pem"
-SSL_KEY_PATH="/etc/ssl/private/selfsigned_key.pem"
 echo "Self-signed SSL certificate generation complete."
-
-# Update SSL paths in Flask app
-sed -i "s|ssl_cert_path = .*|ssl_cert_path = '$SSL_CERT_PATH'|" app.py
-sed -i "s|ssl_key_path = .*|ssl_key_path = '$SSL_KEY_PATH'|" app.py
 echo "Your Flask app will now run with HTTPS!"
 
 # Update the config.ini file with user, password, and port
 echo "Updating config.ini hostname..."
-sed -i "s/^hostname = .*/hostname = $SERVER_NAME/" config.ini
+sed -i "s/^hostname = .*/hostname = $server_name/" "$root_dir/config.ini"
 
 echo "Setup complete. Start web server by executing start.sh, and make your first upload with upload.sh!"
 echo "Web app can be shutdown with shutdown.sh"
-echo -e "${RED}If you are exposing the web app to the wider Internet, update config.ini to a more secure" \
-"username/password${NCL}"
+echo -e "${red}If you are exposing the web app to the wider Internet, update config.ini to a more secure" \
+"username/password${ncl}"
 echo "Note: web app does not need to be running to upload, its usage is entirely optional"
