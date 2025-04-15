@@ -25,6 +25,12 @@ jobs:
         with:
           ref: ${{ github.event.release.target_commitish }}
 
+      - name: Overwrite Dockerfile with the latest version from main
+        run: |
+          git fetch origin main
+          git checkout origin/main -- Dockerfile
+          echo "Updated Dockerfile to the latest version from the main branch"
+
       - name: Verify Git state
         run: |
           echo "Checked out commit: $(git rev-parse HEAD)"
@@ -44,7 +50,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-docker-${{ github.sha }}
+          key: ${{ runner.os }}-docker-${{ github.event.release.target_commitish }}
           restore-keys: |
             ${{ runner.os }}-docker-
 
