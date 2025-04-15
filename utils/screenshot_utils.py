@@ -100,7 +100,7 @@ def process_media_files(directory, command_opts, screenshots_dir, is_rar2fs=Fals
                                          screenshots_dir)
         if not screenshots_generated:
             print("Trying again with fallback mtn binary")
-            screenshots_generated = mtn_exec(command_opts, media_file, 'bin/mtn/mtn', screenshots_dir)
+            screenshots_generated = mtn_exec(command_opts, media_file, ['bin/mtn/mtn'], screenshots_dir)
             if not screenshots_generated:
                 # Still can't generate screenshots
                 print(f"No screenshots generated for {media_file} with fallback mtn binary. Possibly broken media file")
