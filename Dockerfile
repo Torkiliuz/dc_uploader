@@ -40,7 +40,8 @@ RUN mkdir -p /venv && \
     /venv/dc_uploader/bin/pip install --upgrade pip wheel
 
 COPY requirements.txt .
-RUN /venv/dc_uploader/bin/pip install --no-cache-dir -r requirements.txt
+RUN /venv/dc_uploader/bin/pip install --no-cache-dir -r requirements.txt && \
+    /venv/dc_uploader/bin/python3 utils/database_utils.py initialize_all_databases
 
 # Set up environment
 ENV PATH="/venv/dc_uploader/bin:$PATH"
@@ -51,8 +52,7 @@ COPY . .
 
 # Set executable permissions and initialize the databases
 RUN find bin/mkbrr -type f -name "mkbrr" -exec chmod +x {} \; \
-    && chmod +x scripts/*.sh; chmod +x utils/*.sh && \
-    /venv/dc_uploader/bin/python3 utils/database_utils.py initialize_all_databases
+    && chmod +x scripts/*.sh; chmod +x utils/*.sh
 
 WORKDIR /dc_uploader/scripts
 
