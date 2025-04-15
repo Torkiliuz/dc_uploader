@@ -20,6 +20,15 @@ jobs:
       id-token: write
 
     steps:
+      - name: Check if Dockerfile is updated in main
+        run: |
+          git fetch origin main
+          if git diff --quiet ${{ github.event.release.target_commitish }}..origin/main -- Dockerfile; then
+            echo "Dockerfile is not updated in main. Exiting."
+            exit 0
+          fi
+          echo "Dockerfile is updated in main. Proceeding with the workflow."
+
       - name: Checkout the same Git state as release.yml
         uses: actions/checkout@v4
         with:
