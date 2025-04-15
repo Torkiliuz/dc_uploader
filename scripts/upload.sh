@@ -24,11 +24,6 @@ root_dir="$script_dir/.."
 # Use script path to get the parent directory - AKA dc_uploader
 cd "$root_dir" || exit 1
 
-# # Only continue if config validator returns on fatal errors
-if ! "$root_dir/utils/config_validator.sh" "upload.sh"; then
-    exit 1
-fi
-
 # Pretty colors
 red='\033[0;31m'
 ylw='\033[1;33m'
@@ -116,6 +111,11 @@ if [ $# -gt 1 ]; then
                 ;;
         esac
     done
+fi
+
+# Only continue if config validator returns on fatal errors
+if ! "$root_dir/utils/config_validator.sh" "upload.sh"; then
+    exit 1
 fi
 
 # RW permissions check

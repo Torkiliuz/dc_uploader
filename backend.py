@@ -158,7 +158,7 @@ def main():
     tmp_dir = Path(config.get('Paths', 'TMP_DIR')) / str(os.getpid())
     cleanup_enabled = config.getboolean('Settings', 'CLEANUP')
 
-    program_version = "1.1.0"
+    program_version = "1.1.2"
 
     try:
         hasher = config.get('Torrent', 'HASHER').strip()
@@ -179,7 +179,6 @@ def main():
 
         if len(sys.argv) > 1:
             directory_name = sys.argv[1]
-            update_upload_status(name=directory_name, new_status='processing')
         else:
             log("No directory name provided.", log_file_path)
             fail_exit(tmp_dir, cleanup_enabled)
@@ -558,8 +557,12 @@ def main():
 
         except FileNotFoundError as e:
             log(f"File not found: {str(e)}", log_file_path)
+            update_upload_status(name=directory_name, new_status='failed')
+            fail_exit(tmp_dir, cleanup_enabled)
         except Exception as e:
             log(f"Error preparing template: {str(e)}", log_file_path)
+            update_upload_status(name=directory_name, new_status='failed')
+            fail_exit(tmp_dir, cleanup_enabled)
 
         # Upload the torrent
         ascii_art_header("Uploading")
@@ -593,10 +596,12 @@ def main():
             # Optionally, you can log details even when an exception occurs, if relevant
             #log_upload_details(upload_details, upload_log_path, duplicate_found=False)
             print(f"Failed to upload torrent. Error: {str(e)}")
+            update_upload_status(name=directory_name, new_status='failed')
             fail_exit(tmp_dir, cleanup_enabled)
     except KeyboardInterrupt:
         # Cleanup on keyboard interrupt
         print(f"\nKeyboard interrupt detected. Cleaning up and exiting...")
+        update_upload_status(name=directory_name, new_status='failed')
         fail_exit(tmp_dir, cleanup_enabled)
     finally:
         cleanup_tmp_dir(tmp_dir, cleanup_enabled)

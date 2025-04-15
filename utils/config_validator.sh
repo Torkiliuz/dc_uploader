@@ -1,3 +1,5 @@
+#!/bin/bash
+
 check() {
     for required_key in "${required_keys[@]}"; do
         if [[ "$1" == "$required_key" ]]; then
