@@ -14,6 +14,7 @@ from functools import wraps
 from operator import itemgetter
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from setuptools.errors import PlatformError
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
@@ -26,9 +27,9 @@ os.environ['PYTHONPYCACHEPREFIX'] = 'tmp/'
 
 # Initialize the Flask app
 app = Flask(__name__)
-app.secret_key = 'supersecretkey'
+app.secret_key = 'digitalcoreclubdoeswhat'
 
-# Initialize logging to output to the console
+# Initialize logging to output to the console. Will change log level later to user selected
 logging.basicConfig(
     level=logging.DEBUG,  # Set logging level to DEBUG to capture all messages
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -42,16 +43,55 @@ class CaseConfigParser(configparser.ConfigParser):
 
 # Load the config file
 config = CaseConfigParser()
-config.read('config.ini')
+read_config = config.read('config.ini')
+if not read_config:
+    logging.error('Configuration file config.ini not found.')
+    exit(1)
+
+# Set log level
+try:
+    log_level = config['LOG'].get('level', 'DEBUG').upper()
+except KeyError:
+    logging.error('Log setting not found in config.ini, defaulting to DEBUG. You should not have deleted that line, '
+                  'tsk tsk')
+    log_level = 'DEBUG'
+
+if log_level != 'DEBUG':
+    if log_level == 'INFO':
+        logging.getLogger().setLevel(logging.INFO)
+    elif log_level == 'WARNING':
+        logging.getLogger().setLevel(logging.WARNING)
+    elif log_level == 'ERROR':
+        logging.getLogger().setLevel(logging.ERROR)
+    elif log_level == 'CRITICAL':
+        logging.getLogger().setLevel(logging.CRITICAL)
+    else:
+        logging.error(f'Invalid log level {log_level} in config.ini, defaulting to DEBUG.')
+        logging.getLogger().setLevel(logging.DEBUG)
 
 # Read authentication details from config
 auth_user = config['AUTH'].get('user', 'admin')
 auth_password = config['AUTH'].get('password', 'password')
 app_port = int(config['AUTH'].get('port', '5000'))
-app_host = config['AUTH'].get('hostname', 'localhost')
+hostname = config['AUTH'].get('hostname', 'localhost')
+
+if not auth_user:
+    logging.error('No user found in config.ini, please set a user in the AUTH section.')
+    exit(1)
+if not auth_password:
+    logging.error('No password found in config.ini, please set a password in the AUTH section.')
+    exit(1)
+if not app_port:
+    logging.error('No port found in config.ini, please set a port in the AUTH section.')
+    exit(1)
+if not hostname:
+    hostname = 'localhost'  # Default to localhost if not set
 
 # Load the path to the JSON file from config.ini
 json_file_path = config['Paths'].get('FILTERS', 'filters.json')
+if not os.path.exists(json_file_path):
+    logging.error(f"Error: filters.json not found at {json_file_path}, this setting should not have been changed.")
+    exit(1)
 
 # Login required decorator
 def login_required(f):
@@ -159,11 +199,12 @@ def initialize_directory_data():
     data_dir = config['Paths'].get('DATADIR', '').strip()
     if not data_dir:
         logging.error('DATADIR is not set in the configuration file.')
-        return
+        exit(1)
 
     # Load all directories and check status (this runs once on app startup)
     logging.debug(f'Loading all directories and checking status from: {data_dir}')
     load_directories_into_db(data_dir)
+    return True
 
 # Load only new or modified directory data into the SQLite database
 def load_directories_into_db(data_dir=None, single_directory=None):
@@ -211,7 +252,8 @@ def load_directories_into_db(data_dir=None, single_directory=None):
                 status = 'uploading'
             elif os.path.exists(os.path.join(dir_path, '.uploaded')):
                 status = 'uploaded'
-
+            elif os.path.exists(os.path.join(dir_path, '.failed')):
+                status = 'failed'
             # Get the creation date of the directory
             creation_time = os.path.getctime(dir_path)
             creation_date = datetime.fromtimestamp(creation_time).strftime('%Y-%m-%d %H:%M:%S')
@@ -254,19 +296,24 @@ class SubdirectoryEventHandler(FileSystemEventHandler):
     def on_created(self, event):
         # Check if a hidden file related to status is created
         if event.src_path.endswith('.dupe'):
-            logging.info(f'.dupe file detected in {self.dir_name}')
+            logging.debug(f'.dupe file detected in {self.dir_name}')
             update_directory_status(self.dir_name, 'dupe')
         elif event.src_path.endswith('.uploading'):
-            logging.info(f'.uploading file detected in {self.dir_name}')
+            logging.debug(f'.uploading file detected in {self.dir_name}')
             update_directory_status(self.dir_name, 'uploading')
+        elif event.src_path.endswith('.failed'):
+            logging.debug(f'.failed file detected in {self.dir_name}')
+            update_directory_status(self.dir_name, 'failed')
+            # Stop monitoring this directory once the upload fails
+            self.stop_observer()
         elif event.src_path.endswith('.uploaded'):
-            logging.info(f'.uploaded file detected in {self.dir_name}')
+            logging.debug(f'.uploaded file detected in {self.dir_name}')
             update_directory_status(self.dir_name, 'uploaded')
             # Stop monitoring this directory once the upload is complete
             self.stop_observer()
 
     def stop_observer(self):
-        logging.info(f"Stopping observer for {self.dir_name}")
+        logging.debug(f"Stopping observer for {self.dir_name}")
         if self.observer:
             self.observer.stop()
             # Use a separate thread or defer the join() call
@@ -285,7 +332,7 @@ class RootDirectoryEventHandler(FileSystemEventHandler):
             dir_name = os.path.basename(event.src_path)
             logging.debug(f'New directory created: {dir_name}')
             load_directories_into_db(single_directory=event.src_path)
-            logging.info(f'Directory {dir_name} created and added to the database.')
+            logging.debug(f'Directory {dir_name} created and added to the database.')
             
             # Start monitoring the new subdirectory for hidden files
             self.start_subdirectory_watcher(event.src_path)
@@ -299,7 +346,7 @@ class RootDirectoryEventHandler(FileSystemEventHandler):
             c.execute('DELETE FROM directories WHERE name = ?', (dir_name,))
             conn.commit()
             conn.close()
-            logging.info(f'Directory {dir_name} deleted from the database.')
+            logging.debug(f'Directory {dir_name} deleted from the database.')
 
             # Stop the corresponding observer if it exists
             self.stop_subdirectory_watcher(dir_name)
@@ -307,7 +354,7 @@ class RootDirectoryEventHandler(FileSystemEventHandler):
     def start_subdirectory_watcher(self, subdirectory_path):
         # Check if the subdirectory already has an observer
         if subdirectory_path in active_observers:
-            logging.info(f'Already monitoring {subdirectory_path}')
+            logging.debug(f'Already monitoring {subdirectory_path}')
             return
         
         # Create a new observer for the subdirectory
@@ -326,7 +373,7 @@ class RootDirectoryEventHandler(FileSystemEventHandler):
                 local_observer.stop()
                 local_observer.join()
                 del active_observers[path]
-                logging.info(f'Stopped monitoring {subdirectory_name}')
+                logging.debug(f'Stopped monitoring {subdirectory_name}')
 
 
 # Start the root directory watcher
@@ -336,12 +383,12 @@ def start_directory_watcher(data_dir):
     local_observer = Observer()
     local_observer.schedule(event_handler, path=data_dir, recursive=False)
     local_observer.start()
-    logging.debug(f'Root directory watcher started for: {data_dir}')
+    logging.info(f'Root directory watcher started for: {data_dir}')
     return local_observer
 
 # Function to update the directory status in the database
 def update_directory_status(dir_name, new_status):
-    logging.debug(f"Updating status for {dir_name} to {new_status}")
+    logging.info(f"Updating status for {dir_name} to {new_status}")
 
     # Connect to the SQLite database
     conn = sqlite3.connect(DIRDATABASE)
@@ -399,7 +446,7 @@ def get_directories_json():
 @app.route('/')
 @login_required
 def home():
-    logging.info('Accessing the home page')
+    logging.debug('Accessing the home page')
     return render_template('index.html')
 
 # Upload route
@@ -434,11 +481,12 @@ def reset_status():
     dir_path = os.path.join(data_dir, directory_name)
 
     # Remove status directories
-    for status in ['uploading', 'uploaded', 'dupe', 'failed', 'processing']:
+    for status in ['uploading', 'uploaded', 'dupe', 'failed']:
         status_dir = os.path.join(dir_path, f'.{status}')
         if os.path.isdir(status_dir):
             logging.debug(f'Removing status directory: {status_dir}')
             os.rmdir(status_dir)
+
 
     return redirect(url_for('home'))
 
@@ -459,7 +507,7 @@ def set_uploaded():
     dir_path = os.path.join(data_dir, directory_name)
 
     # Remove any existing status folders
-    for status in ['uploading', 'uploaded', 'dupe', 'failed', 'processing']:
+    for status in ['uploading', 'uploaded', 'dupe', 'failed']:
         remove_status_file(dir_path, status)
 
     # Create .uploaded status folder
@@ -707,23 +755,20 @@ def get_logs():
 
 if __name__ == '__main__':
     if platform.system() != 'Linux':
-        print("This tool is designed only for Linux")
-        exit(1)
-    logging.debug('Starting application...')
+        raise PlatformError("This tool is designed only for Linux")
+    logging.info('Starting application...')
 
     # Initialize the SQLite database
     init_db()
 
     # Load directory data into the database on startup
-    logging.debug('Initializing directory data...')
+    logging.info('Initializing directory data...')
     initialize_directory_data()
 
     # Start the directory watcher
     datadir = config['Paths'].get('DATADIR', '').strip()
-    observer = None
-    if datadir:
-        logging.debug(f'Starting directory watcher for {datadir}')
-        observer = start_directory_watcher(datadir)
+    logging.info(f'Starting directory watcher for {datadir}')
+    observer = start_directory_watcher(datadir)
 
     # Start the cleanup task to remove orphaned directories from the database
     initiate_cleanup_daemon()
@@ -733,14 +778,27 @@ if __name__ == '__main__':
     ssl_key_path = 'certificates/key.pem'
 
     try:
-        # Run Flask app with SSL support
-        logging.debug('Starting Flask app with SSL support...')
-        app.run(host='0.0.0.0', port=app_port, ssl_context=(ssl_cert_path, ssl_key_path))
+        # Run Flask app with SSL support if certs exist
+        if os.path.isfile(ssl_cert_path) and os.path.isfile(ssl_key_path) and hostname != 'localhost':
+            # SSL certs exist, try to run with SSL if they can be read
+            logging.info('Starting Flask app with SSL support...')
+            if not os.access(ssl_cert_path, os.R_OK):
+                logging.error(f"SSL certificate not readable: {ssl_cert_path}")
+                exit(1)
+            if not os.access(ssl_key_path, os.R_OK):
+                logging.error(f"SSL key not readable: {ssl_key_path}")
+                exit(1)
+            app.run(host='0.0.0.0', port=app_port, ssl_context=(ssl_cert_path, ssl_key_path), SERVER_NAME=hostname)
+        else:
+            logging.info('No certificates found, starting Flask app without SSL support...')
+            app.run(host='0.0.0.0', port=app_port)
     except KeyboardInterrupt:
-        logging.info('Server interrupted by user.')
+        logging.error('Server interrupted by user.')
+    except Exception as e:
+        logging.error(f'Error starting Flask app: {e}')
     finally:
         if observer and datadir:
-            logging.debug(f'Stopping directory watcher for {datadir}')
+            logging.info(f'Stopping directory watcher for {datadir}')
             observer.stop()
             observer.join()
-            logging.debug('Directory watcher stopped.')
+            logging.info('Directory watcher stopped.')
