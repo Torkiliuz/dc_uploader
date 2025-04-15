@@ -93,7 +93,6 @@ class CustomOutput(io.TextIOBase):
         return self.original_stdout.fileno()
 
 # Replace sys.stdout with CustomOutput
-# Wait, why?! Gonna make it at least properly subclass io.TextIOBase
 sys.stdout = CustomOutput(sys.stdout)
 
 def log(message, file_path):
@@ -228,12 +227,10 @@ def main():
         update_status(directory, 'uploading')
 
         # Initialize upload details dictionary
-        upload_details = {"name": directory_name, "path": str(directory), "size": None, "category": None,
+        upload_details = {"name": directory_name, "path": str(directory), "category": None,
                           "piece_size": None, "piece_size_bytes": None, "etor_started": None, "torrent_file": None,
-                          "etor_completed": None, "nfo": None, 'size': f"{calculate_directory_size(directory)} MB",
+                          "etor_completed": None, 'size': f"{calculate_directory_size(directory)} MB",
                           'nfo': find_nfo_file(directory) or "NFO file not found"}
-
-        # Calculate directory size and check for NFO file
 
         # Check if settings are enabled
         screenshots_enabled = config.getboolean('Settings', 'SCREENSHOTS')
@@ -365,7 +362,6 @@ def main():
                             mediainfo_content = file.read()
 
         # IMDb processing
-        imdb_id = ''
         imdb_link = ''
         if imdb_enabled:
             ascii_art_header("IMDB")
