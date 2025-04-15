@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 
 import requests
+from requests import HTTPError
 
 from utils.art_utils import ascii_art_header
 from utils.bcolors import bcolors
