@@ -158,7 +158,7 @@ def main():
     tmp_dir = Path(config.get('Paths', 'TMP_DIR')) / str(os.getpid())
     cleanup_enabled = config.getboolean('Settings', 'CLEANUP')
 
-    program_version = "1.1.2"
+    program_version = "1.1.3"
 
     try:
         hasher = config.get('Torrent', 'HASHER').strip()
@@ -189,7 +189,16 @@ def main():
 
         print(f"\n{bcolors.OKBLUE}Starting upload script...{bcolors.ENDC}")
 
-        base_dir = Path(config.get('Paths', 'DATADIR'))
+        base_dir = config.get('Paths', 'DATADIR')
+
+        if not base_dir:
+            log("DATADIR not found in config.", log_file_path)
+            print(f"{bcolors.ENDC}{bcolors.FAIL}DATADIR not found in config.\n{bcolors.ENDC}")
+            fail_exit(tmp_dir, cleanup_enabled)
+        else:
+            # It exists, path it
+            base_dir = Path(base_dir)
+
         directory = base_dir / directory_name
 
         if not directory.exists():
