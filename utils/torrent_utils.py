@@ -517,8 +517,7 @@ def upload_torrent(torrent_file, template_file, cookies, category_id, imdb_id, m
             )
         except requests.RequestException as e:
             log_to_file(os.path.join(TMP_DIR, 'upload_response.log'), f"Request exception: {e}")
-            print(f"Request exception: {e}")
-            return
+            raise requests.RequestException(e)
 
         # Log the upload response
         log_to_file(os.path.join(TMP_DIR, 'upload_response.log'), f"Upload response status: {response.status_code}\n{response.text}")
@@ -532,5 +531,6 @@ def upload_torrent(torrent_file, template_file, cookies, category_id, imdb_id, m
             # Download the torrent file using the ID from the response
             dupe_torrent_url = f"{config.get('Website', 'SITEURL')}/api/v1/torrents/download/{torrent_id}"
             download_duplicate_torrent(dupe_torrent_url, cookies, torrent_name, torrent_id)
+            return response.status_code
         else:
-            print(f"Failed to upload torrent. Status code: {response.status_code}\nResponse: {response.text}")
+            raise requests.RequestException(f"Status code: {response.status_code}\nResponse: {response.text}")
