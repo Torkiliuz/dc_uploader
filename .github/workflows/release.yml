@@ -1,4 +1,4 @@
-name: Attach tarball and publish Docker image to GitHub Packages
+name: Release Automation
 
 on:
   release:
