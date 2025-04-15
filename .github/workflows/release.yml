@@ -20,7 +20,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Create tarball excluding specific files
       run: |
@@ -36,17 +36,18 @@ jobs:
             --exclude='utils/__pycache__' \
             --exclude='.git' \
             --exclude='.github' \
+            --exclude='.dockerignore' \
             -czf "/tmp/dc_uploader-${{ github.event.release.tag_name }}.tar.gz" dc_uploader
 
     - name: Upload tarball to release
       uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
         asset_path: /tmp/dc_uploader-${{ github.event.release.tag_name }}.tar.gz
         asset_name: dc_uploader-${{ github.event.release.tag_name }}.tar.gz
         asset_content_type: application/gzip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish_docker:
     runs-on: ubuntu-latest
@@ -62,20 +63,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Uses the `docker/login-action` action to log in to the Container registry using the account and password
-      # that will publish the packages. Once published, the packages are scoped to the account defined here.
       - name: Log in to the Container registry
-        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      # This step uses [docker/metadata-action](https://github.com/docker/metadata-action#about) to extract tags and
-      # labels that will be applied to the specified image. The `id` "meta" allows the output of this step to be
-      # referenced in a subsequent step. The `images` value provides the base name for the tags and labels.
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
@@ -84,22 +81,20 @@ jobs:
             type=semver,pattern={{version}}
             type=raw,value=latest
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Cache Docker layers
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-docker-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-docker-
-      # This step uses the `docker/build-push-action` action to build the image, based on your repository's
-      # `Dockerfile`. If the build succeeds, it pushes the image to GitHub Packages.
-      # It uses the `context` parameter to define the build's context as the set of files located in the specified path.
-      # For more information, see https://github.com/docker/build-push-action#usage in the README of the
-      # `docker/build-push-action` repository.
-      # It uses the `tags` and `labels` parameters to tag and label the image with the output from the "meta" step.
+
       - name: Build and push Docker image
         id: push
-        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
