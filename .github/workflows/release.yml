@@ -19,30 +19,30 @@ jobs:
       contents: write
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Create tarball excluding specific files
-      run: |
-        RELEASE_NAME="dc_uploader-${{ github.event.release.tag_name }}"
-        cd ..
-        tar --exclude='Dockerfile' \
-            --exclude='README.md' \
-            --exclude='LICENSE' \
-            --exclude='.gitignore' \
-            --exclude='.gitattributes' \
-            --exclude='.devcontainer' \
-            --exclude='__pycache__' \
-            --exclude='utils/__pycache__' \
-            --exclude='.git' \
-            --exclude='.github' \
-            --exclude='.dockerignore' \
-            -czf "/tmp/dc_uploader-${{ github.event.release.tag_name }}.tar.gz" dc_uploader
+      - name: Create tarball excluding specific files
+        run: |
+          RELEASE_NAME="dc_uploader-${{ github.event.release.tag_name }}"
+          cd ..
+          tar --exclude='Dockerfile' \
+              --exclude='README.md' \
+              --exclude='LICENSE' \
+              --exclude='.gitignore' \
+              --exclude='.gitattributes' \
+              --exclude='.devcontainer' \
+              --exclude='__pycache__' \
+              --exclude='utils/__pycache__' \
+              --exclude='.git' \
+              --exclude='.github' \
+              --exclude='.dockerignore' \
+              -czf "/tmp/dc_uploader-${{ github.event.release.tag_name }}.tar.gz" dc_uploader
 
-    - name: Upload tarball to release
-      uses: softprops/action-gh-release@v2
-      with:
-        files: /tmp/dc_uploader-${{ github.event.release.tag_name }}.tar.gz
+      - name: Upload tarball to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: /tmp/dc_uploader-${{ github.event.release.tag_name }}.tar.gz
 
   publish_docker:
     runs-on: ubuntu-latest
@@ -105,5 +105,14 @@ jobs:
         uses: actions/attest-build-provenance@v2
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
-          subject-digest: ${{ steps.push.outputs.digest }}
+          subject-digest: ${{ steps.push.outputs.digest }}.sig
           push-to-registry: true
+
+      - name: Re-push the latest and version tag
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ secrets.DOCKER_USERNAME }}/dc_uploader:${{ github.event.release.tag_name }}
