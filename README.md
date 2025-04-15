@@ -54,8 +54,8 @@ services:
     dc-uploader:
         image: ghcr.io/digicore404/dc_uploader:latest
         container_name: dc-uploader
-        entrypoint: tail
-        command: -f /dev/null
+        entrypoint: tail # IMPORTANT
+        command: -f /dev/null # IMPORTANT
         ports:
             - 5000:5000 # Web app port. Only needed if you use web app, needs to reflect what is in config.ini
         cap_add:
