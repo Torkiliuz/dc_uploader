@@ -129,12 +129,21 @@ h3 {
     background-color: orange;
 }
 
+.failed-row {
+    background-color: indianred;
+}
+
 .uploaded-row {
     background-color: lightgreen;
 }
 
 .badge-dupe {
     background-color: purple;
+    color: #fff;
+}
+
+.badge-uploaded {
+    background-color: darkred;
     color: #fff;
 }
 
