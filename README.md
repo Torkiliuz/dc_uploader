@@ -52,7 +52,7 @@ Example compose file:
 ```
 services:
     dc-uploader:
-        image: ghcr.io/DigiCore404/dc_uploader:latest
+        image: ghcr.io/digicore404/dc_uploader:latest
         container_name: dc-uploader
         entrypoint: tail
         command: -f /dev/null
