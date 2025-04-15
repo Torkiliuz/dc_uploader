@@ -144,14 +144,15 @@ def version_check(program_version):
     try:
         response.raise_for_status()
     except HTTPError as e:
-        print(f"Received following HTTP code when trying to check version:\n"
+        print(f"{bcolors.WARNING}Received following HTTP code when trying to check version:\n"
               f"{e}\n"
-              f"Unable to check for latest version, continuing without version check")
+              f"Unable to check for latest version, continuing without version check{bcolors.ENDC}")
     else:
         try:
             new_version = response.json()["name"]
         except KeyError:
-            print(f"GitHub API response did not contain a version number. Continuing without version check")
+            print(f"{bcolors.WARNING}GitHub API response did not contain a version number. "
+                  f"Continuing without version check{bcolors.ENDC}")
         else:
             if new_version != program_version:
                 print(f"{bcolors.WARNING}Warning:{bcolors.ENDC} new version available: v{new_version}")
