@@ -1,15 +1,15 @@
 name: Publish Docker Image
 
 on:
-  push:
-    paths:
-      - Dockerfile
   pull_request:
+    types:
+      - closed
     paths:
       - Dockerfile
 
 jobs:
   publish_docker:
+    if: ${{ github.event.pull_request.merged == true }}
     runs-on: ubuntu-latest
 
     # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
