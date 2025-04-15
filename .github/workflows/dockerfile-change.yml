@@ -6,6 +6,7 @@ on:
       - closed
     paths:
       - Dockerfile
+  workflow_dispatch:
 
 jobs:
   publish_docker:
@@ -20,6 +21,11 @@ jobs:
       id-token: write
 
     steps:
+      - name: Checkout the same Git state as release.yml
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.target_commitish }}
+
       - name: Check if Dockerfile is updated in main
         run: |
           git fetch origin main
@@ -28,11 +34,6 @@ jobs:
             exit 0
           fi
           echo "Dockerfile is updated in main. Proceeding with the workflow."
-
-      - name: Checkout the same Git state as release.yml
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.release.target_commitish }}
 
       - name: Overwrite Dockerfile with the latest version from main
         run: |
