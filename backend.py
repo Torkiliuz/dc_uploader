@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 
 import requests
+from requests import HTTPError
 
 from utils.art_utils import ascii_art_header
 from utils.bcolors import bcolors
@@ -139,9 +140,22 @@ def fail_exit(directory, cleanup_enabled):
 
 def version_check(program_version):
     # Get latest version number from GitHub
-    new_version = requests.get("https://api.github.com/repos/DigiCore404/dc_uploader/releases/latest").json()["name"]
-    if new_version != program_version:
-        print(f"{bcolors.WARNING}Warning:{bcolors.ENDC} new version available: v{new_version}")
+    response = requests.get("https://api.github.com/repos/DigiCore404/dc_uploader/releases/latest")
+    try:
+        response.raise_for_status()
+    except HTTPError as e:
+        print(f"{bcolors.WARNING}Received following HTTP code when trying to check version:\n"
+              f"{e}\n"
+              f"Unable to check for latest version, continuing without version check{bcolors.ENDC}")
+    else:
+        try:
+            new_version = response.json()["name"]
+        except KeyError:
+            print(f"{bcolors.WARNING}GitHub API response did not contain a version number. "
+                  f"Continuing without version check{bcolors.ENDC}")
+        else:
+            if new_version != program_version:
+                print(f"{bcolors.WARNING}Warning:{bcolors.ENDC} new version available: v{new_version}")
 
 def main():
     """Main function to run the script."""
@@ -158,7 +172,7 @@ def main():
     tmp_dir = Path(config.get('Paths', 'TMP_DIR')) / str(os.getpid())
     cleanup_enabled = config.getboolean('Settings', 'CLEANUP')
 
-    program_version = "1.1.3"
+    program_version = "1.1.4"
 
     try:
         hasher = config.get('Torrent', 'HASHER').strip()
