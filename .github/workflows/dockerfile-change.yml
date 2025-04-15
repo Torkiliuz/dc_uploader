@@ -27,6 +27,7 @@ jobs:
           ref: ${{ github.event.release.target_commitish }}
 
       - name: Check if Dockerfile is updated in main
+        if: ${{ github.event_name != 'workflow_dispatch' }}
         run: |
           git fetch origin main
           if git diff --quiet ${{ github.event.release.target_commitish }}..origin/main -- Dockerfile; then
