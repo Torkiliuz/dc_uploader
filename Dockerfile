@@ -53,4 +53,6 @@ COPY . .
 RUN find bin/mkbrr -type f -name "mkbrr" -exec chmod +x {} \;
 RUN chmod +x scripts/*.sh; chmod +x utils/*.sh
 
+WORKDIR /dc_uploader/scripts
+
 ENTRYPOINT ["bash", "/dc_uploader/scripts/upload.sh", "--help"]

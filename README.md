@@ -17,7 +17,7 @@ A simple python tool built for ubuntu to create and upload torrents. Debian is u
 - Gets movie/show information from TMDB (API key required).
 - Automatically edit .torrent from source content tracker instead of generating new .torrent with torf.
 
-## Install
+## Install from source
 
 1. Download the release tarball.
 
@@ -43,8 +43,55 @@ A simple python tool built for ubuntu to create and upload torrents. Debian is u
     - WATCHFOLDER
     - DATADIR
 6. You're done. All user scripts are in the scripts directory.
+   - Note: if you ever change your password, delete your cookie.tmp that is stored in the `files` directory, otherwise you will be unable to upload the completed torrent.
 
-### config.ini settings
+## Docker
+### Docker Compose
+
+Example compose file:
+```
+services:
+    dc-uploader:
+        image: ghcr.io/DigiCore404/dc_uploader:latest
+        container_name: dc-uploader
+        entrypoint: tail
+        command: -f /dev/null
+        ports:
+            - 5000:5000 # Web app port. Only needed if you use web app, needs to reflect what is in config.ini
+        cap_add:
+        # Only required if you upload rar'd content
+            - SYS_ADMIN
+        devices:
+        # Only required if you upload rar'd content
+            - /dev/fuse:/dev/fuse
+        volumes:
+            - ./dc-uploader/config.ini:/dc_uploader/config.ini:ro
+            - ./dc-uploader/queue.txt:/dc_uploader/scripts/queue.txt:ro # Optional
+            - ./dc-uploader/files:/dc_uploader/files # Optional
+            - ./dc-uploader/data:/dc_uploader/data # Optional
+            - /data/torrents:/data/torrents # This is an example DATADIR
+        restart: unless-stopped
+```
+
+Essentially, you want to mount at least the following files/directories:
+- config.ini: The config file. This is where all the settings are stored - pretty self-explanatory.
+- queue.txt: The queue file. This is where you can store a list of directories to upload. If you don't use queues, ignore it.
+- files and data: Logs are stored in these directories. `data` stores the sqlite3 DB's, and `files` store plain text logs. The web app uses the sqlite3 DB's for logs displayed in the web app, so it's not a bad idea to mount these when using the web app so that logs aren't lost on container updates. However, if you don't care about logs, don't mount them, it's fine.
+- Mounting DATADIR correctly is the only tricky part for [discrete directory](https://github.com/DigiCore404/dc_uploader/tree/main?tab=readme-ov-file#discrete-directories) users. Docker treats all mounts as distinct filesystems inside the container, even if on the host they are on the same filesystem. As such, if you want to use hardlinks, you need to mount the common "ancestor" to DATADIR and where you're trying to hardlink from. Even if you're not following the trash guides, it's a good idea to give their hardlinking tutorial a [read](https://trash-guides.info/File-and-Folder-Structure/Hardlinks-and-Instant-Moves/)
+
+For those new to Docker, ./[somedirectory] means [somedirectory] is relative pathed to the directory where the docker-compose.yml file is located. You can also use absolute paths if you want, but it's not necessary if you have the docker-compose.yml file in the same directory as the host-mounted container data.
+
+#### What are the entrypoint and command stuff?
+
+Since this is primarily a CLI tool, there's no long-running program to use for the entrypoint. The entrypoint is thus set to `tail -f /dev/null`, which is a common way to keep a container running by making it tail /dev/null endlessly. This allows you to run commands in the container interactively if you want or via docker exec, while still keeping the container alive when you're not doing anything. Eventually, we'll likely change the entrypoint to run the web app once it's functional, but for now, this is the simplest way to keep the container alive.
+
+#### I'm new to docker, how do I run the script in the container?
+
+`docker exec -it dc-uploader ./upload.sh [/path/to/directory] [OPTION]`
+
+Otherwise, it's identical to normal [usage](https://github.com/DigiCore404/dc_uploader/tree/main?tab=readme-ov-file#usage)
+
+## config.ini settings
 
 Do not change the headers or location of the settings, or change the location of config.ini. It MUST remain in the program's root directory, otherwise - bugs. If it is not mentioned below, just leave it its default.
 
@@ -65,15 +112,13 @@ Do not change the headers or location of the settings, or change the location of
     - If EDIT_TORRENT is set to true, it will edit the torrent instead of creating a new one, which saves time.
 - ANNOUNCEURL: Your personal announce URL.
 - WATCHFOLDER: Path to the directory where .torrent file for the uploaded torrent is placed for the client to import, e.g., /uploaders/torrentwatch.
-- DATADIR: Path to where the downloaded torrent data is stored, e.g., /uploaders/complete. If you like to sort your downloads into tracker/category/etc specific directory (e.g. due to using an *arr stack), see [discrete directories](https://github.com/FinHv/dc_uploader/tree/main?tab=readme-ov-file#discrete-directories).
+- DATADIR: Path to where the downloaded torrent data is stored, e.g., /uploaders/complete. If you like to sort your downloads into tracker/category/etc specific directory (e.g. due to using an *arr stack), see [discrete directories](https://github.com/DigiCore404/dc_uploader/tree/main?tab=readme-ov-file#discrete-directories).
 
 TMDB:
 - See [here](https://developer.themoviedb.org/docs/getting-started#:~:text=To%20register%20for%20an%20API,to%20our%20terms%20of%20use.) on how to get an API key.
 
 IGDB:
 - See [here](https://api-docs.igdb.com/#getting-started) on how to generate a client ID and secret.
-
-Setting Freeleech
 
 ## Usage
 
@@ -95,7 +140,7 @@ The DATADIR would be /home/torrentdata
 
 You would run: `upload.sh "/home/torrentdata/tracker1/this.is.a.nice.movie-grp"`
 
-By default, the program assumes that the data to be uploaded already exists in DATADIR. See [discrete directories](https://github.com/FinHv/dc_uploader/tree/main?tab=readme-ov-file#discrete-directories) if you want to upload directories that are outside DATADIR. If you pass `upload.sh` one of the optional arguments, but the directory is already in DATADIR, it just ignores the argument, thus avoiding duplicating data.
+By default, the program assumes that the data to be uploaded already exists in DATADIR. See [discrete directories](https://github.com/DigiCore404/dc_uploader/tree/main?tab=readme-ov-file#discrete-directories) if you want to upload directories that are outside DATADIR. If you pass `upload.sh` one of the optional arguments, but the directory is already in DATADIR, it just ignores the argument, thus avoiding duplicating data.
 
 #### Optional arguments:
 -h, --help: Prints help. Called via `upload.sh -h` or `upload.sh --help`.
@@ -118,11 +163,11 @@ The queue file provided to `queue_upload.sh` can either be a full absolute path 
 
 If you want to see a log of what was successful during the last run, the success/failure of each queue item is logged in `files/queue_upload.log`.
 
-Since this might take a while, it might be a good idea to execute this as a detached screen. See [FAQ](https://github.com/FinHv/dc_uploader/tree/main?tab=readme-ov-file#faq).
+Since this might take a while, it might be a good idea to execute this as a detached screen. See [FAQ](https://github.com/DigiCore404/dc_uploader/tree/main?tab=readme-ov-file#faq).
 
 ### Web app usage
 
-#### Web app is currently unsupported and its functionality cannot be guaranteed.
+#### Web app is currently unsupported and its functionality cannot be guaranteed. In fact, its somewhat nonfunctional.
 
 Note: Web app usage is entirely optional. The upload tool can be used entirely from the command line.
 
@@ -207,7 +252,7 @@ A: This depends on how you set up the watch directory. By using a watch director
 
 #### Q: I use discrete directories, but I want to add it to a download-then-uploadToDCC automation pathway, how do I do that?
 
-A: Assuming you have created an upload directory as directed by the [discrete directories](https://github.com/FinHv/dc_uploader/tree/main?tab=readme-ov-file#discrete-directories) section, just pass the torrent content path to upload.sh with one of the relevant arguments. The script is the one that handles the linking/copying. You most likely should not use `--mv` in automation since it can break the source torrent which you might still need to seed.
+A: Assuming you have created an upload directory as directed by the [discrete directories](https://github.com/DigiCore404/dc_uploader/tree/main?tab=readme-ov-file#discrete-directories) section, just pass the torrent content path to upload.sh with one of the relevant arguments. The script is the one that handles the linking/copying. You most likely should not use `--mv` in automation since it can break the source torrent which you might still need to seed.
 
 **Example with rtorrent:**
 
