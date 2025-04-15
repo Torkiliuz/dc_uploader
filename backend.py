@@ -139,7 +139,7 @@ def fail_exit(directory, cleanup_enabled):
 
 def version_check(program_version):
     # Get latest version number from GitHub
-    new_version = requests.get("https://api.github.com/repos/FinHv/dc_uploader/releases/latest").json()["name"]
+    new_version = requests.get("https://api.github.com/repos/DigiCore404/dc_uploader/releases/latest").json()["name"]
     if new_version != program_version:
         print(f"{bcolors.WARNING}Warning:{bcolors.ENDC} new version available: v{new_version}")
 

@@ -1,6 +1,7 @@
 [c][b][size=16]!releasename![/size][/b][/c]
 
-[url=https://github.com/FinHv/dc_uploader]Created by DC Uploader v!version![/url]
+[c][size=13][url=https://github.com/DigiCore404/dc_uploader]Created by DC Uploader v!version![/url][/size][/c]
+
 
 !imageupload!
 
