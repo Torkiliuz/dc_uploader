@@ -10,7 +10,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   publish_docker:
@@ -25,30 +24,43 @@ jobs:
       id-token: write
 
     steps:
-      - name: Checkout the same Git state as release.yml
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.release.target_commitish }}
+      - name: Set IMAGE_NAME to lowercase
+        run: echo "IMAGE_NAME=$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
-      - name: Check if Dockerfile is updated in main
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Determine latest tag
+        id: get-latest-tag
         run: |
-          git fetch origin main
-          if git diff --quiet ${{ github.event.release.target_commitish }}..origin/main -- Dockerfile; then
-            echo "Dockerfile is not updated in main. Exiting."
-            exit 0
-          fi
-          echo "Dockerfile is updated in main. Proceeding with the workflow."
+          git fetch --tags
+          LATEST_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
+          echo "Latest tag: $LATEST_TAG"
+          echo "tag_name=$LATEST_TAG" >> $GITHUB_ENV
+
+      - name: Checkout the latest tag
+        run: |
+          git checkout ${{ env.tag_name }}
+          echo "Checked out the latest tag: ${{ env.tag_name }}"
+
+      - name: Verify Git state
+        run: |
+          echo "Checked out commit: $(git rev-parse HEAD)"
+          echo "Target commitish: ${{ env.tag_name }}"
+
+      - name: Compute SHA256 of the release commit
+        id: compute-sha256
+        run: |
+          RELEASE_COMMIT=$(git rev-parse ${{ env.tag_name }})
+          echo "Release commit: $RELEASE_COMMIT"
+          SHA256=$(echo -n "$RELEASE_COMMIT" | sha256sum | awk '{print $1}')
+          echo "sha256=$SHA256" >> $GITHUB_ENV
 
       - name: Overwrite Dockerfile with the latest version from main
         run: |
           git fetch origin main
           git checkout origin/main -- Dockerfile
           echo "Updated Dockerfile to the latest version from the main branch"
-
-      - name: Verify Git state
-        run: |
-          echo "Checked out commit: $(git rev-parse HEAD)"
-          echo "Target commitish: ${{ github.event.release.target_commitish }}"
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
@@ -64,7 +76,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-docker-${{ github.event.release.target_commitish }}
+          key: ${{ runner.os }}-docker-${{ env.sha256 }}
           restore-keys: |
             ${{ runner.os }}-docker-
 
@@ -75,7 +87,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:${{ github.event.release.tag_name }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:${{ env.tag_name }}
 
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
@@ -91,4 +103,4 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:${{ github.event.release.tag_name }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:${{ env.tag_name }}
