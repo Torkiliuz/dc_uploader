@@ -69,6 +69,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Compute SHA256 of the release commit to use their cache
+        id: compute-sha256
+        run: |
+          RELEASE_COMMIT=$(git rev-parse ${{ env.tag_name }})
+          echo "Release commit: $RELEASE_COMMIT"
+          SHA256=$(echo -n "$RELEASE_COMMIT" | sha256sum | awk '{print $1}')
+          echo "sha256=$SHA256" >> $GITHUB_ENV
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
