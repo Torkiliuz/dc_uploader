@@ -67,8 +67,6 @@ services:
         volumes:
             - ./dc-uploader/config.ini:/dc_uploader/config.ini:ro
             - ./dc-uploader/queue.txt:/dc_uploader/scripts/queue.txt:ro # Optional
-            - ./dc-uploader/files:/dc_uploader/files # Optional
-            - ./dc-uploader/data:/dc_uploader/data # Optional
             - /data/torrents:/data/torrents # This is an example DATADIR
         restart: unless-stopped
 ```
@@ -76,7 +74,6 @@ services:
 Essentially, you want to mount at least the following files/directories:
 - config.ini: The config file. This is where all the settings are stored - pretty self-explanatory.
 - queue.txt: The queue file. This is where you can store a list of directories to upload. If you don't use queues, ignore it.
-- files and data: Logs are stored in these directories. `data` stores the sqlite3 DB's, and `files` store plain text logs. The web app uses the sqlite3 DB's for logs displayed in the web app, so it's not a bad idea to mount these when using the web app so that logs aren't lost on container updates. However, if you don't care about logs, don't mount them, it's fine.
 - Mounting DATADIR correctly is the only tricky part for [discrete directory](https://github.com/DigiCore404/dc_uploader/tree/main?tab=readme-ov-file#discrete-directories) users. Docker treats all mounts as distinct filesystems inside the container, even if on the host they are on the same filesystem. As such, if you want to use hardlinks, you need to mount the common "ancestor" to DATADIR and where you're trying to hardlink from. Even if you're not following the trash guides, it's a good idea to give their hardlinking tutorial a [read](https://trash-guides.info/File-and-Folder-Structure/Hardlinks-and-Instant-Moves/)
 
 For those new to Docker, ./[somedirectory] means [somedirectory] is relative pathed to the directory where the docker-compose.yml file is located. You can also use absolute paths if you want, but it's not necessary if you have the docker-compose.yml file in the same directory as the host-mounted container data.
