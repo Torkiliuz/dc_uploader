@@ -85,7 +85,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-docker-${{ github.sha }}
+          key: ${{ runner.os }}-docker-e7d05fdb02a52b0a
           restore-keys: |
             ${{ runner.os }}-docker-
 
@@ -105,6 +105,7 @@ jobs:
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
+      # Generate artifact attestation
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
@@ -112,10 +113,9 @@ jobs:
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
 
-      - name: Re-tag and push
+      - name: Add attestation tag to attestation image
         run: |
           DIGEST=$(echo "${{ steps.push.outputs.digest }}" | cut -d':' -f2)
-          docker buildx imagetools create \
-            --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:latest \
-            --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:${{ env.tag_name }} \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}@sha256:$DIGEST
+          SOURCE_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:sha256-${DIGEST}"
+          TARGET_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:latest-sig"
+          docker buildx imagetools create --tag $TARGET_TAG $SOURCE_TAG

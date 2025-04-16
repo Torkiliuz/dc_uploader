@@ -13,7 +13,12 @@ env:
 
 jobs:
   publish_docker:
-    if: ${{ github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch' }}
+    if: >-
+      (github.event.pull_request.merged == true && 
+      contains(join(github.event.pull_request.labels.*.name, ','), 'dockerfile update') &&
+      github.event.pull_request.head.ref == 'dev' &&
+      github.event.pull_request.base.ref == 'main') || 
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
@@ -98,9 +103,9 @@ jobs:
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
 
-      - name: Rename attestation tag with .attestation suffix
+      - name: Add attestation tag to attestation image
         run: |
           DIGEST=$(echo "${{ steps.push.outputs.digest }}" | cut -d':' -f2)
           SOURCE_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:sha256-${DIGEST}"
-          TARGET_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:attestation"
-          docker buildx imagetools create --tag $TARGET_TAG $SOURCE_TAG || true
+          TARGET_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:latest-sig"
+          docker buildx imagetools create --tag $TARGET_TAG $SOURCE_TAG
