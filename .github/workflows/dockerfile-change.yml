@@ -72,26 +72,44 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-docker-
 
-      - name: Build and push Docker image
-        id: push
+      - name: Build Docker image without pushing
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
+          push: false  # Don't push yet
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:${{ env.tag_name }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          outputs: type=docker,dest=/tmp/image.tar
 
       - name: Move cache
         run: |
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
+      - name: Load image
+        run: |
+          docker load --input /tmp/image.tar
+          docker image ls -a
+
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
-          subject-digest: ${{ steps.push.outputs.digest }}
+          subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
+
+      - name: Rename attestation tag with .sig suffix
+        run: |
+          DIGEST=$(echo "${{ steps.build.outputs.digest }}" | cut -d':' -f2)
+          SOURCE_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:sha256-${DIGEST}"
+          TARGET_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:sha256-${DIGEST}.sig"
+          docker buildx imagetools create --tag $TARGET_TAG $SOURCE_TAG
+
+      - name: Push Docker image (last step)
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:latest
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:${{ env.tag_name }}
