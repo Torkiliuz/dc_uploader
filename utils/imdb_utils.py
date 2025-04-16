@@ -134,12 +134,13 @@ def get_imdb_info(directory_name, media_type):
         # Iterate over results
         for result in data['results']:
             tmdb_id = result['id']
-            title = result['name']
             if media_type == 'tv':
+                title = result['name']
                 # TV show, has first_air_date
                 year = result.get('first_air_date', '').split('-')[0]
             else:
                 # Movie, has release_date
+                title = result['title']
                 year = result.get('release_date', '').split('-')[0]  # Extract only the year part
 
             print(f"Processing result: {title} ({year})")
