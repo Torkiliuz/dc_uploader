@@ -68,20 +68,17 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-docker-${{ env.tag_name }}
+          key: ${{ runner.os }}-docker-e7d05fdb02a52b0a
           restore-keys: |
             ${{ runner.os }}-docker-
 
-      - name: Build Docker image
+      - name: Build and push version tag
         id: build
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: false
-          load: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:${{ env.tag_name }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:latest
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:${{ env.tag_name }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
@@ -90,9 +87,7 @@ jobs:
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
-      - name: Push version tag first
-        run: docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:${{ env.tag_name }}
-
+      # Generate artifact attestation
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
@@ -100,5 +95,9 @@ jobs:
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
 
-      - name: Push latest tag last
-        run: docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:latest
+      # Tag and push latest (reusing the same image)
+      - name: Tag and push latest
+        run: |
+          docker buildx imagetools create \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:latest \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:${{ env.tag_name }}
