@@ -61,14 +61,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Compute SHA256 of the release commit to use their cache
-        id: compute-sha256
-        run: |
-          RELEASE_COMMIT=$(git rev-parse ${{ env.tag_name }})
-          echo "Release commit: $RELEASE_COMMIT"
-          SHA256=$(echo -n "$RELEASE_COMMIT" | sha256sum | awk '{print $1}')
-          echo "sha256=$SHA256" >> $GITHUB_ENV
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -76,7 +68,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-docker-${{ env.sha256 }}
+          key: ${{ runner.os }}-docker-${{ env.tag_name }}
           restore-keys: |
             ${{ runner.os }}-docker-
 
@@ -92,6 +84,11 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
@@ -99,15 +96,11 @@ jobs:
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
 
-      - name: Move cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-
-      - name: Re-tag and push
-        run: |
-          DIGEST=$(echo "${{ steps.push.outputs.digest }}" | cut -d':' -f2)
-          docker buildx imagetools create \
-            --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:latest \
-            --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:${{ env.tag_name }} \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}@sha256:$DIGEST
+      - name: Re-push the latest and version tag
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ secrets.DOCKER_USERNAME }}/dc_uploader:${{ env.tag_name }}
