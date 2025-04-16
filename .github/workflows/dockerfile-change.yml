@@ -48,14 +48,6 @@ jobs:
           echo "Checked out commit: $(git rev-parse HEAD)"
           echo "Target commitish: ${{ env.tag_name }}"
 
-      - name: Compute SHA256 of the release commit
-        id: compute-sha256
-        run: |
-          RELEASE_COMMIT=$(git rev-parse ${{ env.tag_name }})
-          echo "Release commit: $RELEASE_COMMIT"
-          SHA256=$(echo -n "$RELEASE_COMMIT" | sha256sum | awk '{print $1}')
-          echo "sha256=$SHA256" >> $GITHUB_ENV
-
       - name: Overwrite Dockerfile with the latest version from main
         run: |
           git fetch origin main
