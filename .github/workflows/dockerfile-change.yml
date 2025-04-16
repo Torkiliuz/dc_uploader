@@ -81,6 +81,7 @@ jobs:
             ${{ runner.os }}-docker-
 
       - name: Build and push Docker image
+        id: push
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -88,19 +89,25 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:${{ env.tag_name }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
-          subject-digest: ${{ steps.push.outputs.digest }}.sig
+          subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
 
-      - name: Re-push the latest and version tag
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:${{ env.tag_name }}
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Re-tag and push
+        run: |
+          DIGEST=$(echo "${{ steps.push.outputs.digest }}" | cut -d':' -f2)
+          docker buildx imagetools create \
+            --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:latest \
+            --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:${{ env.tag_name }} \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}@sha256:$DIGEST

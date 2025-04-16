@@ -100,21 +100,22 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
 
-      # This step generates an artifact attestation for the image, which is an unforgeable statement about where and
-      # how it was built. It increases supply chain security for people who consume the image. For more information, see
-      # https://docs.github.com/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
-          subject-digest: ${{ steps.push.outputs.digest }}.sig
+          subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
 
-      - name: Re-push the latest and version tag
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ secrets.DOCKER_USERNAME }}/dc_uploader:${{ github.event.release.tag_name }}
+      - name: Re-tag and push
+        run: |
+          DIGEST=$(echo "${{ steps.push.outputs.digest }}" | cut -d':' -f2)
+          docker buildx imagetools create \
+            --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:latest \
+            --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:${{ env.tag_name }} \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}@sha256:$DIGEST
