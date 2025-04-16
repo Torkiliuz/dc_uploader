@@ -102,12 +102,5 @@ jobs:
         run: |
           DIGEST=$(echo "${{ steps.push.outputs.digest }}" | cut -d':' -f2)
           SOURCE_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:sha256-${DIGEST}"
-          TARGET_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:sha256-${DIGEST}.attestation"
+          TARGET_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:attestation"
           docker buildx imagetools create --tag $TARGET_TAG $SOURCE_TAG || true
-          
-          # Delete the original tag
-          curl -X DELETE \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.package.v1+json" \
-            "https://api.github.com/user/packages/container/${{ env.IMAGE_NAME }}/versions/$(echo $DIGEST | cut -c1-12)" || \
-            echo "Failed to delete original tag, but .sig tag was created"
