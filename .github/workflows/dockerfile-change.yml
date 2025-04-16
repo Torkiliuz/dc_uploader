@@ -95,6 +95,13 @@ jobs:
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
 
+      - name: Rename attestation tag with .sig suffix
+        run: |
+          DIGEST=$(echo "${{ steps.push.outputs.digest }}" | cut -d':' -f2)
+          SOURCE_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:sha256-${DIGEST}"
+          TARGET_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:sha256-${DIGEST}.sig"
+          docker buildx imagetools create --tag $TARGET_TAG $SOURCE_TAG || true
+
       # Tag and push latest (reusing the same image)
       - name: Tag and push latest
         run: |
