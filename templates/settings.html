@@ -65,7 +65,6 @@
                 'COOKIEPATH': 'Cookie File',
                 'IMAGE_UPLOAD': 'Image Upload',
                 'DUPECHECK': 'Duplicate Check',
-                'DUPEDL': 'Download Duplicates',
                 'ADDFASTRESUME': 'Add Torrent with Fast Resume',
                 'PREPENDNAME': 'Prepend Name',
                 'EDIT_TORRENT': 'Edit Torrent',
@@ -88,7 +87,7 @@
                 'ANONYMOUS': 'Upload anonymously',
             } %}
 
-            {% set boolean_fields = ['DUPECHECK', 'DUPEDL', 'ADDFASTRESUME', 'IMAGE_UPLOAD', 'MEDIAINFO', 'SCREENSHOTS', 'RAR2FS_SCREENSHOTS', 'IMDB', 'CLEANUP', 'ANONYMOUS', 'FREELEECH'] %}
+            {% set boolean_fields = ['DUPECHECK', 'ADDFASTRESUME', 'IMAGE_UPLOAD', 'MEDIAINFO', 'SCREENSHOTS', 'RAR2FS_SCREENSHOTS', 'IMDB', 'CLEANUP', 'ANONYMOUS', 'FREELEECH'] %}
             {% set password_fields = ['password', 'CAPTCHA_PASSKEY', 'PASSWORD', 'USERNAME', 'ANNOUNCEURL', 'APIKEY', 'LOGINTXT' ] %}
 
             {% for section, settings in settings.items() %}
