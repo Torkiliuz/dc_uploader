@@ -39,8 +39,8 @@ def upload_images(directory, is_screenshots=False):
     log_file_path = temp_dir / 'image_upload.log'
 
     if not image_files:
-        print(f"No images found in the directory: {directory}")
-        log_to_file(log_file_path, f"No images found in the directory: {directory}")
+        print(f"No images found {directory} to upload")
+        log_to_file(log_file_path, f"No images found {directory} to upload")
         return uploaded_image_urls
 
     for image_file in image_files:

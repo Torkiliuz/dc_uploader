@@ -389,7 +389,7 @@ def calculate_piece_size(directory):
     return pieces
 
 
-def download_duplicate_torrent(url, cookies, release_name, is_dupe=False, dupe_id=None):
+def download_torrent(url, cookies, release_name, is_dupe=False, dupe_id=None):
     """Download a torrent file, distinguishing between duplicate and regular torrents."""
     try:
         # Determine the temporary file path with appropriate naming
@@ -453,7 +453,7 @@ def download_duplicate_torrent(url, cookies, release_name, is_dupe=False, dupe_i
         log_to_file(os.path.join(TMP_DIR, 'dupe_general_error.log' if is_dupe else 'torrent_general_error.log'), f"An error occurred: {str(e)}")
         print(f"{bcolors.FAIL}An error occurred: {str(e)}{bcolors.ENDC}")
 
-def upload_torrent(torrent_file, template_file, cookies, category_id, imdb_id, mediainfo_text):
+def upload_torrent(torrent_file, template_file, cookies, category_id, imdb_id, mediainfo_text, dupedl_enabled):
     """
     Uploads a torrent file to the specified site with the required details.
 
@@ -519,18 +519,24 @@ def upload_torrent(torrent_file, template_file, cookies, category_id, imdb_id, m
             log_to_file(os.path.join(TMP_DIR, 'upload_response.log'), f"Request exception: {e}")
             raise requests.RequestException(e)
 
+        response_code = response.status_code
         # Log the upload response
-        log_to_file(os.path.join(TMP_DIR, 'upload_response.log'), f"Upload response status: {response.status_code}\n{response.text}")
-        
-        if response.status_code == 200:
-            print(f"{bcolors.OKGREEN}Torrent uploaded successfully.\n{bcolors.ENDC}")
+        log_to_file(os.path.join(TMP_DIR, 'upload_response.log'), f"Upload response status: {response_code}\n{response.text}")
+
+        if response_code == 200 or (response_code == 409 and dupedl_enabled):
             response_json = response.json()
             torrent_id = response_json.get('id')
             torrent_name = response_json.get('name')
+
+            if response_code == 200:
+                print(f"{bcolors.OKGREEN}Torrent uploaded successfully: {torrent_name}\n{bcolors.ENDC}")
+            elif response_code == 409:
+                print(f"{bcolors.WARNING}Torrent already exists. Downloading and seeding found duplicate torrent id: "
+                      f"{torrent_id}.\n{bcolors.ENDC}")
             
             # Download the torrent file using the ID from the response
-            dupe_torrent_url = f"{config.get('Website', 'SITEURL')}/api/v1/torrents/download/{torrent_id}"
-            download_duplicate_torrent(dupe_torrent_url, cookies, torrent_name, torrent_id)
-            return response.status_code
+            torrent_url = f"{config.get('Website', 'SITEURL')}/api/v1/torrents/download/{torrent_id}"
+            download_torrent(torrent_url, cookies, torrent_name, torrent_id)
+            return response_code
         else:
-            raise requests.RequestException(f"Status code: {response.status_code}\nResponse: {response.text}")
+            raise requests.RequestException(f"Status code: {response_code}\nResponse: {response.text}")
