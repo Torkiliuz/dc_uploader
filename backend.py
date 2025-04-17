@@ -149,12 +149,39 @@ def version_check(program_version):
     else:
         try:
             new_version = response.json()["name"]
+            # Strip 'v' prefix if present
+            if new_version.startswith('v'):
+                new_version = new_version[1:]
+            if program_version.startswith('v'):
+                program_version = program_version[1:]
+
+            # Parse versions into components
+            new_parts = [int(x) for x in new_version.split('.')]
+            current_parts = [int(x) for x in program_version.split('.')]
+
+            # Pad shorter version with zeros for comparison
+            while len(new_parts) < len(current_parts):
+                new_parts.append(0)
+            while len(current_parts) < len(new_parts):
+                current_parts.append(0)
+
+            # Compare versions
+            if new_parts > current_parts:
+                print(
+                    f"{bcolors.WARNING}A newer version available: v{new_version} (you are on v{program_version})"
+                    f"{bcolors.ENDC}")
+            elif new_parts < current_parts:
+                print(
+                    f"{bcolors.WARNING}You're using a development version: v{program_version} "
+                    f"(latest stable is v{new_version}){bcolors.ENDC}")
+            else:
+                print(f"{bcolors.OKGREEN}You're using the latest version: v{program_version}{bcolors.ENDC}")
         except KeyError:
             print(f"{bcolors.WARNING}GitHub API response did not contain a version number. "
                   f"Continuing without version check{bcolors.ENDC}")
-        else:
-            if new_version != program_version:
-                print(f"{bcolors.WARNING}Warning:{bcolors.ENDC} new version available: v{new_version}")
+        except Exception as e:
+            print(f"{bcolors.WARNING}Error comparing versions: {str(e)}. "
+                  f"Continuing without version check{bcolors.ENDC}")
 
 def main():
     """Main function to run the script."""
@@ -171,7 +198,7 @@ def main():
     tmp_dir = Path(config.get('Paths', 'TMP_DIR')) / str(os.getpid())
     cleanup_enabled = config.getboolean('Settings', 'CLEANUP')
 
-    program_version = "1.1.5"
+    program_version = "1.1.6"
 
     try:
         hasher = config.get('Torrent', 'HASHER').strip()
@@ -237,6 +264,7 @@ def main():
         rar2fs_screenshots_enabled = config.getboolean('Settings', 'RAR2FS_SCREENSHOTS')
         mediainfo_enabled = config.getboolean('Settings', 'MEDIAINFO')
         dupecheck_enabled = config.getboolean('Settings', 'DUPECHECK')
+        dupedl_enabled = config.getboolean('Settings', 'DUPEDL')
         fast_resume = config.getboolean('Settings', 'ADDFASTRESUME')
         imdb_enabled = config.getboolean('Settings', 'IMDB')
         image_upload_enabled = config.getboolean('Settings', 'IMAGE_UPLOAD')
@@ -257,7 +285,8 @@ def main():
         print(f"{bcolors.GREEN}Screenshots enabled: {screenshots_enabled}{bcolors.ENDC}")
         print(f"{bcolors.GREEN}RAR2FS enabled: {rar2fs_screenshots_enabled}{bcolors.ENDC}")
         print(f"{bcolors.GREEN}Mediainfo enabled: {mediainfo_enabled}{bcolors.ENDC}")
-        print(f"{bcolors.GREEN}Dupecheck enabled: {dupecheck_enabled}{bcolors.ENDC}")
+        print(f"{bcolors.GREEN}Dupe Check enabled: {dupecheck_enabled}{bcolors.ENDC}")
+        print(f"{bcolors.GREEN}Dupe Download enabled: {dupedl_enabled}{bcolors.ENDC}")
         print(f"{bcolors.GREEN}Fastresume enabled: {fast_resume}{bcolors.ENDC}")
         print(f"{bcolors.GREEN}IMDB enabled: {imdb_enabled}{bcolors.ENDC}")
         print(f"{bcolors.GREEN}Gameinfo enabled: {gameinfo_enabled}{bcolors.ENDC}")
@@ -294,11 +323,8 @@ def main():
 
         # Check for duplicates
         try:
-            # Read settings from config
-            dupe_check_enabled = config.getboolean('Settings', 'DUPECHECK', fallback=False)
-
-            # Only run dupe check if both DUPECHECK is enabled
-            if dupe_check_enabled:
+            # Only run dupe check if both DUPECHECK and DUPEDL are enabled
+            if dupecheck_enabled and dupedl_enabled:
                 ascii_art_header("Dupe checking")
                 duplicate_found = check_and_download_dupe(directory_name, cookies)
                 if duplicate_found:
@@ -480,7 +506,7 @@ def main():
                     print(f"{bcolors.GREEN}Image upload successful!\n{bcolors.ENDC}")  # Print success message
                 else:
                     replacements['!imageupload!'] = ''
-                    print(f"{bcolors.RED}No images found in the source directory.\n{bcolors.ENDC}")  # Print no images found message
+                    print(f"No images found in the source directory.\n")  # Print no images found message
 
                 # Upload the screenshots and get URLs
                 if screenshots_enabled:
@@ -496,10 +522,10 @@ def main():
                             print(f"{bcolors.GREEN}Screenshot upload successful!{bcolors.ENDC}")  # Print success message
                         else:
                             replacements['!screenshots!'] = ''
-                            print(f"{bcolors.RED}No screenshots found.\n{bcolors.ENDC}")  # Print no screenshots found message
+                            print(f"No screenshots found.\n")  # Print no screenshots found message
                     else:
                         replacements['!screenshots!'] = ''
-                        print(f"{bcolors.RED}Screenshots directory not found or it is empty.\n{bcolors.ENDC}")
+                        print(f"Screenshots directory not found or no screenshots token.\n")
 
                 # Upload the game images if game info is available and game images exist
                 game_image_dir = tmp_dir / 'images'
@@ -526,10 +552,10 @@ def main():
                         print(f"{bcolors.GREEN}Game image upload successful!\n{bcolors.ENDC}")
                     else:
                         replacements['!gameimage!'] = ''
-                        print(f"{bcolors.RED}No game images found.\n{bcolors.ENDC}")
+                        print(f"No game images found.\n")
                 else:
                     replacements['!gameimage!'] = ''
-                    print(f"{bcolors.RED}No game images directory found.\n{bcolors.ENDC}")
+                    print(f"No game images directory found.")
 
             except Exception as e:
                 log(f"Error uploading images: {str(e)}", log_file_path)
@@ -599,7 +625,7 @@ def main():
         # Initialize upload details dictionary
 
         try:
-            upload_torrent(torrent_file, template_content, cookies, category_id, imdb_id, mediainfo_content)
+            upload_torrent(torrent_file, template_content, cookies, category_id, imdb_id, mediainfo_content, dupedl_enabled)
             log_upload_details(upload_details, upload_log_path, duplicate_found=False)
             update_status(directory, 'uploaded')
             update_upload_status(name=directory_name, new_status='uploaded')
