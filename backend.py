@@ -237,7 +237,6 @@ def main():
         rar2fs_screenshots_enabled = config.getboolean('Settings', 'RAR2FS_SCREENSHOTS')
         mediainfo_enabled = config.getboolean('Settings', 'MEDIAINFO')
         dupecheck_enabled = config.getboolean('Settings', 'DUPECHECK')
-        dupedl_enabled = config.getboolean('Settings', 'DUPEDL')
         fast_resume = config.getboolean('Settings', 'ADDFASTRESUME')
         imdb_enabled = config.getboolean('Settings', 'IMDB')
         image_upload_enabled = config.getboolean('Settings', 'IMAGE_UPLOAD')
@@ -259,7 +258,6 @@ def main():
         print(f"{bcolors.GREEN}RAR2FS enabled: {rar2fs_screenshots_enabled}{bcolors.ENDC}")
         print(f"{bcolors.GREEN}Mediainfo enabled: {mediainfo_enabled}{bcolors.ENDC}")
         print(f"{bcolors.GREEN}Dupecheck enabled: {dupecheck_enabled}{bcolors.ENDC}")
-        print(f"{bcolors.GREEN}Dupedownload enabled: {dupedl_enabled}{bcolors.ENDC}")
         print(f"{bcolors.GREEN}Fastresume enabled: {fast_resume}{bcolors.ENDC}")
         print(f"{bcolors.GREEN}IMDB enabled: {imdb_enabled}{bcolors.ENDC}")
         print(f"{bcolors.GREEN}Gameinfo enabled: {gameinfo_enabled}{bcolors.ENDC}")
@@ -294,17 +292,13 @@ def main():
         # Create process-specific directory in tmp_dir
         temp_dir = tmp_dir
 
-        # Initialize duplicate check variable
-        duplicate_found = False
-
         # Check for duplicates
         try:
             # Read settings from config
             dupe_check_enabled = config.getboolean('Settings', 'DUPECHECK', fallback=False)
-            dupe_dl_enabled = config.getboolean('Settings', 'DUPEDL', fallback=False)
 
-            # Only run dupe check if both DUPECHECK and DUPEDL are enabled
-            if dupe_check_enabled and dupe_dl_enabled:
+            # Only run dupe check if both DUPECHECK is enabled
+            if dupe_check_enabled:
                 ascii_art_header("Dupe checking")
                 duplicate_found = check_and_download_dupe(directory_name, cookies)
                 if duplicate_found:
@@ -313,7 +307,7 @@ def main():
                     update_upload_status(name=directory_name, new_status='dupe')
                     log_upload_details(upload_details, upload_log_path, duplicate_found=True)
                     cleanup_tmp_dir(tmp_dir, cleanup_enabled)  # Clean up tmp_dir
-                    exit(1)
+                    exit(0)
             else:
                 log("Dupe check or download is disabled in the config.", log_file_path)
 
