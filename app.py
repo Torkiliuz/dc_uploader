@@ -460,7 +460,7 @@ def upload():
         return "Directory name not provided", 400  # Return 400 if directory_name is missing
 
     # Start upload in a subprocess to avoid blocking
-    subprocess.Popen(['venv/bin/python3', 'backend.py', f'{shlex.quote(str(directory_name))}'])
+    subprocess.Popen(['/venv/dc_uploader/bin/python3', 'backend.py', f'{shlex.quote(str(directory_name))}'])
 
     return "Upload started", 200
 
