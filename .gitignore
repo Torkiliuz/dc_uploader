@@ -325,3 +325,4 @@ pyrightconfig.json
 *.cer
 *.der
 *.priv
+/files/cookies.tmp
